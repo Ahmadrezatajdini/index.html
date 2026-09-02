@@ -1,0 +1,77 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Tahoma, Arial, sans-serif;
+  background: #f1f5f9;
+  color: #0f172a;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+
+/* ========================================= */
+/* صفحه ورود */
+/* ========================================= */
+
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a 0%,
+      #1e293b 55%,
+      #334155 100%
+    );
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 430px;
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 28px 22px;
+  box-shadow: 0 25px 70px #00000055;
+}
+
+.app-logo {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 22px;
+
+  background: #0f172a;
+  color: white;
+
+  font-size: 38px;
+
+  box-shadow: 0 10px 25px #00000022;
+}
+
+.auth-container > h1 {
+  text

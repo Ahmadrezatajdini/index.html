@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0,
+        maximum-scale=1.0, user-scalable=no">
+
+  <meta name="theme-color" content="#0f172a">
+
+  <meta name="description"
+        content="مدیریت هوشمند املاک">
+
+  <title>املاک هوشمند</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+
+<!-- =========================
+     AUTH SCREEN
+========================= -->
+
+<div id="authScreen" class="auth-screen">
+
+  <div class="auth-container">
+
+    <div class="app-logo">
+      🏠
+    </div>
+
+    <h1>املاک هوشمند</h1>
+
+    <p class="auth-subtitle">
+      مدیریت حرفه‌ای فایل‌ها و مشتریان املاک
+    </p>
+
+
+    <!-- LOGIN -->
+
+    <div id="loginPage" class="auth-page">
+
+      <h2>ورود به حساب</h2>
+
+      <p class="form-description">
+        برای ورود شماره موبایل خود را وارد کنید.
+      </p>
+
+      <div class="form-group">
+
+        <label for="loginPhone">
+          شماره موبایل
+        </label>
+
+        <input
+          id="loginPhone"
+          type="tel"
+          inputmode="numeric"
+          placeholder="مثلاً 09123456789"
+          maxlength="11"
+        >
+
+      </div>
+
+      <button
+        class="main-button"
+        onclick="login()"
+      >
+        ورود
+      </button>
+
+      <button
+        class="text-button"
+        onclick="showRegister()"
+      >
+        حساب ندارید؟ ثبت‌نام کنید
+      </button>
+
+    </div>
+
+
+    <!-- REGISTER -->
+
+    <div
+      id="registerPage"
+      class="auth-page"
+      style="display:none"
+    >
+
+      <h2>ساخت حساب</h2>
+
+      <p class="form-description">
+        اطلاعات خود را وارد کنید.
+      </p>
+
+      <div class="form-group">
+
+        <label for="registerName">
+          نام و نام خانوادگی
+        </label>
+
+        <input
+          id="registerName"
+          type="text"
+          placeholder="نام شما"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label for="registerPhone">
+          شماره موبایل
+        </label>
+
+        <input
+          id="registerPhone"
+          type="tel"
+          inputmode="numeric"
+          placeholder="مثلاً 09123456789"
+          maxlength="11"
+        >
+
+      </div>
+
+
+      <!-- SUBSCRIPTION -->
+
+      <div class="subscription-card">
+
+        <div class="subscription-title">
+          اشتراک سالانه
+        </div>
+
+        <div class="subscription-price">
+          ۹۹٬۰۰۰ تومان
+        </div>
+
+        <div class="subscription-duration">
+          اعتبار: ۱ سال
+        </div>
+
+      </div>
+
+
+      <label class="terms">
+
+        <input
+          id="terms"
+          type="checkbox"
+        >
+
+        <span>
+          قوانین و شرایط استفاده از برنامه را می‌پذیرم.
+        </span>
+
+      </label>
+
+
+      <button
+        class="main-button"
+        onclick="register()"
+      >
+        ادامه ثبت‌نام
+      </button>
+
+
+      <button
+        class="text-button"
+        onclick="showLogin()"
+      >
+        قبلاً حساب ساخته‌ام
+      </button>
+
+    </div>
+
+
+    <!-- PAYMENT -->
+
+    <div
+      id="paymentPage"
+      class="auth-page"
+      style="display:none"
+    >
+
+      <div class="payment-icon">
+        💳
+      </div>
+
+      <h2>
+        فعال‌سازی اشتراک
+      </h2>
+
+      <p class="form-description">
+        برای استفاده از امکانات برنامه،
+        اشتراک یک‌ساله را فعال کنید.
+      </p>
+
+
+      <div class="payment-card">
+
+        <div>
+          مبلغ اشتراک
+        </div>
+
+        <strong>
+          ۹۹٬۰۰۰ تومان
+        </strong>
+
+        <small>
+          اعتبار یک سال
+        </small>
+
+      </div>
+
+
+      <button
+        class="main-button"
+        onclick="pay()"
+      >
+        پرداخت و فعال‌سازی
+      </button>
+
+
+      <button
+        class="text-button"
+        onclick="showRegister()"
+      >
+        بازگشت
+      </button>
+
+      <p class="payment-note">
+        نسخه فعلی آزمایشی است و پرداخت واقعی
+        در مرحله اتصال درگاه بانکی فعال خواهد شد.
+      </p>
+
+    </div>
+
+
+    <div class="version">
+      نسخه ۱.۰.۰
+    </div>
+
+  </div>
+
+</div>
+
+
+
+<!-- =========================
+     MAIN APP
+========================= -->
+
+<div
+  id="appScreen"
+  style="display:none"
+>
+
+
+  <!-- TOP BAR -->
+
+  <header class="topbar">
+
+    <div>
+
+      <h1>
+        املاک هوشمند
+      </h1>
+
+      <span>
+        مدیریت فایل‌های املاک
+      </span>
+
+    </div>
+
+
+    <button
+      class="menu-button"
+      onclick="toggleMenu()"
+      aria-label="منو"
+    >
+      ☰
+    </button>
+
+  </header>
+
+
+  <!-- MENU -->
+
+  <nav
+    id="mainMenu"
+    class="main-menu"
+  >
+
+    <button onclick="showSection('dashboard')">
+      🏠 داشبورد
+    </button>
+
+    <button onclick="showSection('properties')">
+      🏢 فایل‌های ملکی
+    </button>
+
+    <button onclick="showSection('customers')">
+      👥 مشتریان
+    </button>
+
+    <button onclick="showSection('settings')">
+      ⚙️ تنظیمات
+    </button>
+
+    <button
+      class="danger-button"
+      onclick="logout()"
+    >
+      🚪 خروج
+    </button>
+
+  </nav>
+
+
+
+  <!-- =========================
+       DASHBOARD
+  ========================= -->
+
+  <main>
+
+    <section
+      id="dashboard"
+      class="section"
+    >
+
+      <div class="welcome-card">
+
+        <h2>
+          خوش آمدید 👋
+        </h2>
+
+        <p>
+          فایل‌ها و مشتریان خود را هوشمندانه مدیریت کنید.
+        </p>
+
+      </div>
+
+
+      <div class="stats-grid">
+
+        <div class="stat-card">
+
+          <span class="stat-icon">
+            🏢
+          </span>
+
+          <strong id="propertyCount">
+            ۰
+          </strong>
+
+          <span>
+            کل فایل‌ها
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-icon">
+            👥
+          </span>
+
+          <strong id="customerCount">
+            ۰
+          </strong>
+
+          <span>
+            مشتریان
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-icon">
+            🟢
+          </span>
+
+          <strong id="availableCount">
+            ۰
+          </strong>
+
+          <span>
+            فایل‌های موجود
+          </span>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <span class="stat-icon">
+            ⭐
+          </span>
+
+          <strong id="specialCount">
+            ۰
+          </strong>
+
+          <span>
+            فایل‌های ویژه
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <div class="quick-actions">
+
+        <button
+          class="main-button"
+          onclick="openPropertyForm()"
+        >
+          ➕ ثبت فایل جدید
+        </button>
+
+        <button
+          class="secondary-button"
+          onclick="openCustomerForm()"
+        >
+          👤 ثبت مشتری جدید
+        </button>
+
+      </div>
+
+
+      <div class="panel">
+
+        <div class="section-header">
+
+          <h3>
+            آخرین فایل‌ها
+          </h3>
+
+          <button
+            class="text-button"
+            onclick="showSection('properties')"
+          >
+            مشاهده همه
+          </button>
+
+        </div>
+
+        <div id="latestProperties">
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         PROPERTIES
+    ========================= -->
+
+    <section
+      id="properties"
+      class="section"
+      style="display:none"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>
+            فایل‌های ملکی
+          </h2>
+
+          <p>
+            مدیریت و جستجوی فایل‌ها
+          </p>
+
+        </div>
+
+        <button
+          class="main-button small-button"
+          onclick="openPropertyForm()"
+        >
+          ➕ افزودن فایل
+        </button>
+
+      </div>
+
+
+      <!-- SEARCH -->
+
+      <div class="panel">
+
+        <input
+          id="propertySearch"
+          class="search-input"
+          type="search"
+          placeholder="🔎 جستجو در فایل‌ها..."
+        >
+
+      </div>
+
+
+      <!-- FILTERS -->
+
+      <div class="filter-card">
+
+        <h3>
+          فیلتر هوشمند
+        </h3>
+
+
+        <div class="filter-grid">
+
+
+          <div class="form-group">
+
+            <label>
+              نوع ملک
+            </label>
+
+            <select id="filterType">
+
+              <option value="">
+                همه
+              </option>
+
+              <option value="آپارتمان">
+                آپارتمان
+              </option>
+
+              <option value="ویلایی">
+                ویلایی
+              </option>
+
+              <option value="زمین">
+                زمین
+              </option>
+
+              <option value="مغازه">
+                مغازه
+              </option>
+
+              <option value="اداری">
+                اداری
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              منطقه
+            </label>
+
+            <input
+              id="filterArea"
+              type="text"
+              placeholder="مثلاً فرهنگیان"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              حداقل متراژ
+            </label>
+
+            <input
+              id="filterMinSize"
+              type="number"
+              placeholder="مثلاً ۸۰"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              حداکثر متراژ
+            </label>
+
+            <input
+              id="filterMaxSize"
+              type="number"
+              placeholder="مثلاً ۱۵۰"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              حداقل قیمت
+            </label>
+
+            <input
+              id="filterMinPrice"
+              type="number"
+              placeholder="تومان"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              حداکثر قیمت
+            </label>
+
+            <input
+              id="filterMaxPrice"
+              type="number"
+              placeholder="تومان"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              وضعیت
+            </label>
+
+            <select id="filterStatus">
+
+              <option value="">
+                همه
+              </option>
+
+              <option value="موجود">
+                موجود
+              </option>
+
+              <option value="فروخته">
+                فروخته شده
+              </option>
+
+              <option value="اجاره">
+                اجاره داده شده
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              ویژگی
+            </label>
+
+            <select id="filterSpecial">
+
+              <option value="">
+                همه
+              </option>
+
+              <option value="true">
+                ⭐ ویژه
+              </option>
+
+              <option value="false">
+                عادی
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label>
+              مرتب‌سازی
+            </label>
+
+            <select id="propertySort">
+
+              <option value="newest">
+                جدیدترین
+              </option>
+
+              <option value="oldest">
+                قدیمی‌ترین
+              </option>
+
+              <option value="priceLow">
+                ارزان‌ترین
+              </option>
+
+              <option value="priceHigh">
+                گران‌ترین
+              </option>
+
+              <option value="sizeLow">
+                کمترین متراژ
+              </option>
+
+              <option value="sizeHigh">
+                بیشترین متراژ
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        <div class="filter-footer">
+
+          <span
+            id="propertyResultCount"
+            class="result-count"
+          >
+            ۰ فایل
+          </span>
+
+          <button
+            class="secondary-button filter-reset"
+            onclick="resetFilters()"
+          >
+            پاک کردن فیلترها
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- PROPERTY LIST -->
+
+      <div
+        id="propertyList"
+        class="card-list"
+      >
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         CUSTOMERS
+    ========================= -->
+
+    <section
+      id="customers"
+      class="section"
+      style="display:none"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>
+            مشتریان
+          </h2>
+
+          <p>
+            مدیریت مشتریان و نیازهای خرید
+          </p>
+
+        </div>
+
+        <button
+          class="main-button small-button"
+          onclick="openCustomerForm()"
+        >
+          ➕ افزودن مشتری
+        </button>
+
+      </div>
+
+
+      <div class="panel">
+
+        <input
+          id="customerSearch"
+          class="search-input"
+          type="search"
+          placeholder="🔎 جستجوی نام یا شماره مشتری..."
+          oninput="renderCustomers()"
+        >
+
+      </div>
+
+
+      <div
+        id="customerList"
+        class="card-list"
+      >
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         SETTINGS
+    ========================= -->
+
+    <section
+      id="settings"
+      class="section"
+      style="display:none"
+    >
+
+      <div class="section-header">
+
+        <div>
+
+          <h2>
+            تنظیمات
+          </h2>
+
+          <p>
+            حساب کاربری و اطلاعات برنامه
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- ACCOUNT -->
+
+      <div class="panel">
+
+        <h3>
+          👤 حساب کاربری
+        </h3>
+
+
+        <div class="setting-row">
+
+          <span>
+            شماره موبایل
+          </span>
+
+          <strong id="accountPhone">
+            -
+          </strong>
+
+        </div>
+
+
+        <div class="setting-row">
+
+          <span>
+            وضعیت اشتراک
+          </span>
+
+          <strong id="subscriptionStatus">
+            -
+          </strong>
+
+        </div>
+
+
+        <div class="setting-row">
+
+          <span>
+            تاریخ پایان اشتراک
+          </span>
+
+          <strong id="subscriptionDate">
+            -
+          </strong>
+
+        </div>
+
+
+        <button
+          class="main-button"
+          onclick="renewSubscription()"
+        >
+          💳 تمدید اشتراک
+        </button>
+
+      </div>
+
+
+      <!-- BACKUP -->
+
+      <div class="panel">
+
+        <h3>
+          💾 پشتیبان‌گیری
+        </h3>
+
+        <p>
+          از اطلاعات فایل‌ها و مشتریان خود نسخه پشتیبان تهیه کنید.
+        </p>
+
+        <div class="quick-actions">
+
+          <button
+            class="secondary-button"
+            onclick="backupData()"
+          >
+            ⬇️ دریافت پشتیبان
+          </button>
+
+
+          <button
+            class="secondary-button"
+            onclick="document.getElementById('restoreFile').click()"
+          >
+            ⬆️ بازیابی اطلاعات
+          </button>
+
+        </div>
+
+
+        <input
+          id="restoreFile"
+          type="file"
+          accept=".json"
+          style="display:none"
+          onchange="restoreData(event)"
+        >
+
+      </div>
+
+
+      <!-- APP INFO -->
+
+      <div class="panel">
+
+        <h3>
+          ℹ️ درباره برنامه
+        </h3>
+
+        <p>
+          املاک هوشمند
+        </p>
+
+        <p>
+          نسخه ۱.۰.۰
+        </p>
+
+      </div>
+
+
+      <button
+        class="danger-button full-button"
+        onclick="logout()"
+      >
+        🚪 خروج از حساب
+      </button>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+
+<!-- =========================
+     PROPERTY MODAL
+========================= -->
+
+<div
+  id="propertyModal"
+  class="modal"
+  style="display:none"
+>
+
+  <div class="modal-content">
+
+    <div class="modal-header">
+
+      <h2 id="propertyModalTitle">
+        ثبت فایل جدید
+      </h2>
+
+      <button
+        class="modal-close"
+        onclick="document.getElementById('propertyModal').style.display='none'"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <input
+      id="propertyId"
+      type="hidden"
+    >
+
+
+    <div class="form-group">
+
+      <label>
+        نوع ملک
+      </label>
+
+      <select id="propertyType">
+
+        <option value="آپارتمان">
+          آپارتمان
+        </option>
+
+        <option value="ویلایی">
+          ویلایی
+        </option>
+
+        <option value="زمین">
+          زمین
+        </option>
+
+        <option value="مغازه">
+          مغازه
+        </option>
+
+        <option value="اداری">
+          اداری
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        منطقه / محله
+      </label>
+
+      <input
+        id="propertyArea"
+        type="text"
+        placeholder="مثلاً فرهنگیان فاز ۲"
+      >
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        متراژ
+      </label>
+
+      <input
+        id="propertySize"
+        type="number"
+        placeholder="مثلاً ۱۲۰"
+      >
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        قیمت کل
+      </label>
+
+      <input
+        id="propertyPrice"
+        type="number"
+        placeholder="مثلاً ۶۸۰۰۰۰۰۰۰۰"
+      >
+
+    </div>
+
+
+    <div class="form-grid">
+
+
+      <div class="form-group">
+
+        <label>
+          تعداد خواب
+        </label>
+
+        <input
+          id="propertyRooms"
+          type="number"
+          min="0"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          طبقه
+        </label>
+
+        <input
+          id="propertyFloor"
+          type="number"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          سال ساخت
+        </label>
+
+        <input
+          id="propertyAge"
+          type="number"
+        >
+
+      </div>
+
+    </div>
+
+
+    <div class="checkbox-grid">
+
+      <label>
+        <input
+          id="propertyParking"
+          type="checkbox"
+        >
+        پارکینگ
+      </label>
+
+
+      <label>
+        <input
+          id="propertyElevator"
+          type="checkbox"
+        >
+        آسانسور
+      </label>
+
+
+      <label>
+        <input
+          id="propertyStorage"
+          type="checkbox"
+        >
+        انباری
+      </label>
+
+
+      <label>
+        <input
+          id="propertySpecial"
+          type="checkbox"
+        >
+        ⭐ فایل ویژه
+      </label>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        وضعیت
+      </label>
+
+      <select id="propertyStatus">
+
+        <option value="موجود">
+          موجود
+        </option>
+
+        <option value="فروخته">
+          فروخته شده
+        </option>
+
+        <option value="اجاره">
+          اجاره داده شده
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        توضیحات
+      </label>
+
+      <textarea
+        id="propertyDescription"
+        rows="5"
+        placeholder="توضیحات کامل ملک..."
+      ></textarea>
+
+    </div>
+
+
+    <button
+      class="main-button save-button"
+      onclick="saveProperty()"
+    >
+      💾 ذخیره فایل
+    </button>
+
+  </div>
+
+</div>
+
+
+
+<!-- =========================
+     CUSTOMER MODAL
+========================= -->
+
+<div
+  id="customerModal"
+  class="modal"
+  style="display:none"
+>
+
+  <div class="modal-content">
+
+    <div class="modal-header">
+
+      <h2 id="customerModalTitle">
+        ثبت مشتری جدید
+      </h2>
+
+      <button
+        class="modal-close"
+        onclick="document.getElementById('customerModal').style.display='none'"
+      >
+        ✕
+      </button>
+
+    </div>
+
+
+    <input
+      id="customerId"
+      type="hidden"
+    >
+
+
+    <div class="form-group">
+
+      <label>
+        نام مشتری
+      </label>
+
+      <input
+        id="customerName"
+        type="text"
+        placeholder="نام و نام خانوادگی"
+      >
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        شماره موبایل
+      </label>
+
+      <input
+        id="customerPhone"
+        type="tel"
+        inputmode="numeric"
+        placeholder="09123456789"
+        maxlength="11"
+      >
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        نوع درخواست
+      </label>
+
+      <select id="customerType">
+
+        <option value="خرید">
+          خرید
+        </option>
+
+        <option value="اجاره">
+          اجاره
+        </option>
+
+        <option value="رهن">
+          رهن
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        منطقه موردنظر
+      </label>
+
+      <input
+        id="customerArea"
+        type="text"
+        placeholder="مثلاً شهرک جهاد"
+      >
+
+    </div>
+
+
+    <div class="form-grid">
+
+
+      <div class="form-group">
+
+        <label>
+          حداقل متراژ
+        </label>
+
+        <input
+          id="customerMinSize"
+          type="number"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          حداکثر متراژ
+        </label>
+
+        <input
+          id="customerMaxSize"
+          type="number"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          حداقل بودجه
+        </label>
+
+        <input
+          id="customerMinPrice"
+          type="number"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          حداکثر بودجه
+        </label>
+
+        <input
+          id="customerMaxPrice"
+          type="number"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          تعداد خواب
+        </label>
+
+        <input
+          id="customerRooms"
+          type="number"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label>
+          حداکثر سال ساخت
+        </label>
+
+        <input
+          id="customerAge"
+          type="number"
+        >
+
+      </div>
+
+    </div>
+
+
+    <div class="checkbox-grid">
+
+      <label>
+        <input
+          id="customerParking"
+          type="checkbox"
+        >
+        پارکینگ
+      </label>
+
+
+      <label>
+        <input
+          id="customerElevator"
+          type="checkbox"
+        >
+        آسانسور
+      </label>
+
+
+      <label>
+        <input
+          id="customerStorage"
+          type="checkbox"
+        >
+        انباری
+      </label>
+
+    </div>
+
+
+    <div class="form-group">
+
+      <label>
+        توضیحات مشتری
+      </label>
+
+      <textarea
+        id="customerDescription"
+        rows="5"
+        placeholder="نیازها و توضیحات مشتری..."
+      ></textarea>
+
+    </div>
+
+
+    <button
+      class="main-button save-button"
+      onclick="saveCustomer()"
+    >
+      💾 ذخیره مشتری
+    </button>
+
+  </div>
+
+</div>
+
+
+
+<!-- =========================
+     SCRIPT
+========================= -->
+
+<script src="app.js"></script>
+
+
+<!-- SERVICE WORKER -->
+
+<script>
+
+if ("serviceWorker" in navigator) {
+
+  window.addEventListener("load", () => {
+
+    navigator.serviceWorker
+      .register("sw.js")
+      .catch(() => {});
+
+  });
+
+}
+
+</script>
+
+</body>
+</html>

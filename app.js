@@ -3,13 +3,12 @@
 /* =========================================================
    املاک هوشمند
    app.js
-   نسخه 3.0
-   هماهنگ با index.html
+   نسخه 4.0
 ========================================================= */
 
 const APP_CONFIG = {
     appName: "املاک هوشمند",
-    version: "3.0.0",
+    version: "4.0.0",
     subscriptionPrice: 99000,
     subscriptionDays: 365
 };
@@ -36,7 +35,7 @@ function loadJSON(key, defaultValue) {
         return JSON.parse(value);
 
     } catch (error) {
-        console.error(error);
+        console.error("Load error:", error);
         return defaultValue;
     }
 }
@@ -52,7 +51,7 @@ function saveJSON(key, value) {
         return true;
 
     } catch (error) {
-        console.error(error);
+        console.error("Save error:", error);
 
         alert("ذخیره اطلاعات انجام نشد.");
 
@@ -178,7 +177,8 @@ function escapeHTML(value) {
 
 function getValue(id) {
 
-    const element = document.getElementById(id);
+    const element =
+        document.getElementById(id);
 
     return element
         ? element.value.trim()
@@ -188,9 +188,11 @@ function getValue(id) {
 
 function setValue(id, value) {
 
-    const element = document.getElementById(id);
+    const element =
+        document.getElementById(id);
 
     if (element) {
+
         element.value =
             value === null ||
             value === undefined
@@ -202,7 +204,8 @@ function setValue(id, value) {
 
 function getChecked(id) {
 
-    const element = document.getElementById(id);
+    const element =
+        document.getElementById(id);
 
     return element
         ? element.checked
@@ -212,7 +215,8 @@ function getChecked(id) {
 
 function setChecked(id, value) {
 
-    const element = document.getElementById(id);
+    const element =
+        document.getElementById(id);
 
     if (element) {
         element.checked = Boolean(value);
@@ -225,6 +229,7 @@ function setChecked(id, value) {
 ========================================================= */
 
 function getUser() {
+
     return loadJSON(
         STORAGE_KEYS.user,
         null
@@ -233,6 +238,7 @@ function getUser() {
 
 
 function getProperties() {
+
     return loadJSON(
         STORAGE_KEYS.properties,
         []
@@ -241,6 +247,7 @@ function getProperties() {
 
 
 function getCustomers() {
+
     return loadJSON(
         STORAGE_KEYS.customers,
         []
@@ -249,6 +256,7 @@ function getCustomers() {
 
 
 function saveUser(user) {
+
     return saveJSON(
         STORAGE_KEYS.user,
         user
@@ -257,6 +265,7 @@ function saveUser(user) {
 
 
 function saveProperties(properties) {
+
     return saveJSON(
         STORAGE_KEYS.properties,
         properties
@@ -265,6 +274,7 @@ function saveProperties(properties) {
 
 
 function saveCustomers(customers) {
+
     return saveJSON(
         STORAGE_KEYS.customers,
         customers
@@ -292,6 +302,7 @@ function hideAuthPages() {
         if (page) {
             page.style.display = "none";
         }
+
     });
 }
 
@@ -352,6 +363,7 @@ function register() {
     const terms =
         getChecked("terms");
 
+
     if (name.length < 2) {
 
         alert(
@@ -375,7 +387,30 @@ function register() {
     if (!terms) {
 
         alert(
-            "لطفاً قوانین و شرایط را بپذیرید."
+            "لطفاً قوانین و شرایط استفاده را بپذیرید."
+        );
+
+        return;
+    }
+
+
+    const oldUser = getUser();
+
+
+    if (
+        oldUser &&
+        normalizePhone(oldUser.phone) === phone
+    ) {
+
+        alert(
+            "این شماره قبلاً ثبت‌نام کرده است."
+        );
+
+        showLogin();
+
+        setValue(
+            "loginPhone",
+            phone
         );
 
         return;
@@ -396,7 +431,13 @@ function register() {
     };
 
 
-    saveUser(user);
+    const saved =
+        saveUser(user);
+
+
+    if (!saved) {
+        return;
+    }
 
 
     alert(
@@ -430,7 +471,8 @@ function login() {
     }
 
 
-    const user = getUser();
+    const user =
+        getUser();
 
 
     if (!user) {
@@ -440,6 +482,11 @@ function login() {
         );
 
         showRegister();
+
+        setValue(
+            "registerPhone",
+            phone
+        );
 
         return;
     }
@@ -482,6 +529,7 @@ function isSubscriptionValid(user) {
         return false;
     }
 
+
     return (
         new Date(
             user.subscriptionUntil
@@ -492,7 +540,8 @@ function isSubscriptionValid(user) {
 
 function activateSubscription() {
 
-    const user = getUser();
+    const user =
+        getUser();
 
 
     if (!user) {
@@ -514,501 +563,4 @@ function activateSubscription() {
 
 
     user.subscriptionUntil =
-        currentDate.toISOString();
-
-
-    saveUser(user);
-
-
-    alert(
-        "اشتراک یک‌ساله با موفقیت فعال شد."
-    );
-
-
-    openApplication();
-}
-
-
-function pay() {
-
-    const user = getUser();
-
-
-    if (!user) {
-
-        alert(
-            "ابتدا ثبت‌نام کنید."
-        );
-
-        showRegister();
-
-        return;
-    }
-
-
-    activateSubscription();
-}
-
-
-function renewSubscription() {
-
-    activateSubscription();
-}
-
-
-/* =========================================================
-   ورود به برنامه
-========================================================= */
-
-function openApplication() {
-
-    const auth =
-        document.getElementById("authScreen");
-
-    const app =
-        document.getElementById("appScreen");
-
-
-    if (auth) {
-        auth.style.display = "none";
-    }
-
-
-    if (app) {
-        app.style.display = "block";
-    }
-
-
-    updateDashboard();
-
-    renderProperties();
-
-    renderCustomers();
-
-    updateSettings();
-}
-
-
-/* =========================================================
-   خروج
-========================================================= */
-
-function logout() {
-
-    const app =
-        document.getElementById("appScreen");
-
-    const auth =
-        document.getElementById("authScreen");
-
-
-    if (app) {
-        app.style.display = "none";
-    }
-
-
-    if (auth) {
-        auth.style.display = "block";
-    }
-
-
-    showLogin();
-}
-
-
-/* =========================================================
-   منو
-========================================================= */
-
-function toggleMenu() {
-
-    const menu =
-        document.getElementById("mainMenu");
-
-
-    if (!menu) {
-        return;
-    }
-
-
-    if (
-        menu.style.display === "none" ||
-        menu.style.display === ""
-    ) {
-
-        menu.style.display = "block";
-
-    } else {
-
-        menu.style.display = "none";
-    }
-}
-
-
-function closeMenu() {
-
-    const menu =
-        document.getElementById("mainMenu");
-
-    if (menu) {
-        menu.style.display = "none";
-    }
-}
-
-
-/* =========================================================
-   بخش‌ها
-========================================================= */
-
-function showSection(sectionName) {
-
-    const sections =
-        document.querySelectorAll(".section");
-
-
-    sections.forEach(function(section) {
-
-        section.style.display = "none";
-
-    });
-
-
-    const target =
-        document.getElementById(sectionName);
-
-
-    if (target) {
-
-        target.style.display = "block";
-    }
-
-
-    closeMenu();
-
-
-    if (sectionName === "dashboard") {
-        updateDashboard();
-    }
-
-
-    if (sectionName === "properties") {
-        renderProperties();
-    }
-
-
-    if (sectionName === "customers") {
-        renderCustomers();
-    }
-
-
-    if (sectionName === "settings") {
-        updateSettings();
-    }
-}
-
-
-/* =========================================================
-   داشبورد
-========================================================= */
-
-function updateDashboard() {
-
-    const properties =
-        getProperties();
-
-    const customers =
-        getCustomers();
-
-
-    const propertyCount =
-        document.getElementById(
-            "propertyCount"
-        );
-
-
-    const customerCount =
-        document.getElementById(
-            "customerCount"
-        );
-
-
-    const availableCount =
-        document.getElementById(
-            "availableCount"
-        );
-
-
-    const specialCount =
-        document.getElementById(
-            "specialCount"
-        );
-
-
-    if (propertyCount) {
-
-        propertyCount.textContent =
-            toPersianNumber(
-                properties.length
-            );
-    }
-
-
-    if (customerCount) {
-
-        customerCount.textContent =
-            toPersianNumber(
-                customers.length
-            );
-    }
-
-
-    const available =
-        properties.filter(function(property) {
-
-            return (
-                property.status === "موجود"
-            );
-
-        });
-
-
-    if (availableCount) {
-
-        availableCount.textContent =
-            toPersianNumber(
-                available.length
-            );
-    }
-
-
-    const special =
-        properties.filter(function(property) {
-
-            return property.special === true;
-
-        });
-
-
-    if (specialCount) {
-
-        specialCount.textContent =
-            toPersianNumber(
-                special.length
-            );
-    }
-
-
-    renderLatestProperties();
-}
-
-
-function renderLatestProperties() {
-
-    const container =
-        document.getElementById(
-            "latestProperties"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const properties =
-        getProperties()
-            .slice()
-            .sort(function(a, b) {
-
-                return (
-                    Number(b.createdAt || 0) -
-                    Number(a.createdAt || 0)
-                );
-
-            })
-            .slice(0, 5);
-
-
-    if (properties.length === 0) {
-
-        container.innerHTML =
-            "<p>هنوز فایلی ثبت نشده است.</p>";
-
-        return;
-    }
-
-
-    container.innerHTML =
-        properties.map(
-            propertyCardHTML
-        ).join("");
-}
-
-
-/* =========================================================
-   فرم ملک
-========================================================= */
-
-function openPropertyForm() {
-
-    clearPropertyForm();
-
-
-    const modal =
-        document.getElementById(
-            "propertyModal"
-        );
-
-
-    if (modal) {
-
-        modal.style.display = "flex";
-
-        modal.dataset.editingId = "";
-    }
-}
-
-
-function clearPropertyForm() {
-
-    setValue("propertyId", "");
-
-    setValue("propertyArea", "");
-
-    setValue("propertySize", "");
-
-    setValue("propertyPrice", "");
-
-    setValue("propertyRooms", "");
-
-    setValue("propertyFloor", "");
-
-    setValue("propertyAge", "");
-
-    setValue("propertyDescription", "");
-
-
-    setChecked(
-        "propertyParking",
-        false
-    );
-
-    setChecked(
-        "propertyElevator",
-        false
-    );
-
-    setChecked(
-        "propertyStorage",
-        false
-    );
-
-    setChecked(
-        "propertySpecial",
-        false
-    );
-
-
-    setValue(
-        "propertyStatus",
-        "موجود"
-    );
-
-
-    setValue(
-        "propertyType",
-        "آپارتمان"
-    );
-}
-
-
-function closePropertyForm() {
-
-    const modal =
-        document.getElementById(
-            "propertyModal"
-        );
-
-    if (modal) {
-
-        modal.style.display = "none";
-
-        modal.dataset.editingId = "";
-    }
-}
-
-
-/* =========================================================
-   ذخیره ملک
-========================================================= */
-
-function saveProperty() {
-
-    const modal =
-        document.getElementById(
-            "propertyModal"
-        );
-
-
-    const editingId =
-        modal
-            ? modal.dataset.editingId
-            : "";
-
-
-    const property = {
-
-        id:
-            editingId ||
-            generateId(),
-
-        type:
-            getValue("propertyType"),
-
-        area:
-            getValue("propertyArea"),
-
-        size:
-            normalizeNumber(
-                getValue("propertySize")
-            ),
-
-        price:
-            normalizeNumber(
-                getValue("propertyPrice")
-            ),
-
-        rooms:
-            normalizeNumber(
-                getValue("propertyRooms")
-            ),
-
-        floor:
-            getValue("propertyFloor"),
-
-        age:
-            normalizeNumber(
-                getValue("propertyAge")
-            ),
-
-        parking:
-            getChecked("propertyParking"),
-
-        elevator:
-            getChecked("propertyElevator"),
-
-        storage:
-            getChecked("propertyStorage"),
-
-        special:
-            getChecked("propertySpecial"),
-
-        status:
-            getValue("propertyStatus") ||
-            "موجود",
-
-        description:
-            getValue("propertyDescription"),
-
-        createdAt:
-           
+        currentDate

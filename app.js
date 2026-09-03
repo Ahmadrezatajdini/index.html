@@ -1,11 +1,18 @@
-// ===============================
-// املاک هوشمند - نسخه 1.2
-// هماهنگ با index.html
-// ===============================
+/* =========================================================
+   املاک هوشمند
+   app.js - نسخه 2.0
+   هماهنگ با index.html
+========================================================= */
+
+"use strict";
+
+/* =========================
+   تنظیمات برنامه
+========================= */
 
 const APP_CONFIG = {
     appName: "املاک هوشمند",
-    version: "1.2.0",
+    version: "2.0.0",
     subscriptionPrice: 99000,
     subscriptionDays: 365
 };
@@ -16,99 +23,101 @@ const STORAGE_KEYS = {
     customers: "realEstate_customers"
 };
 
-let currentUser = loadJSON(STORAGE_KEYS.user, null);
-let properties = loadJSON(STORAGE_KEYS.properties, []);
-let customers = loadJSON(STORAGE_KEYS.customers, []);
 
-// ===============================
-// ابزارهای عمومی
-// ===============================
+/* =========================
+   ابزارهای عمومی
+========================= */
 
-function loadJSON(key, fallback) {
+function loadJSON(key, defaultValue) {
     try {
         const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : fallback;
-    } catch (e) {
-        return fallback;
+
+        if (!data) {
+            return defaultValue;
+        }
+
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("خطا در خواندن اطلاعات:", error);
+        return defaultValue;
     }
 }
 
-function saveUser() {
-    localStorage.setItem(
-        STORAGE_KEYS.user,
-        JSON.stringify(currentUser)
-    );
-}
-
-function saveProperties() {
-    localStorage.setItem(
-        STORAGE_KEYS.properties,
-        JSON.stringify(properties)
-    );
-}
-
-function saveCustomers() {
-    localStorage.setItem(
-        STORAGE_KEYS.customers,
-        JSON.stringify(customers)
-    );
+function saveJSON(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+    } catch (error) {
+        console.error("خطا در ذخیره اطلاعات:", error);
+        alert("ذخیره اطلاعات انجام نشد.");
+        return false;
+    }
 }
 
 function generateId() {
-    return Date.now().toString(36) +
-        Math.random().toString(36).substring(2, 8);
+    return Date.now().toString() + Math.random().toString(36).substring(2, 8);
 }
 
 function normalizeNumber(value) {
-    if (value === null || value === undefined) return 0;
+    if (value === null || value === undefined) {
+        return 0;
+    }
 
-    const persian = "۰۱۲۳۴۵۶۷۸۹";
-    const arabic = "٠١٢٣٤٥٦٧٨٩";
+    let text = String(value);
 
-    let str = String(value);
+    const persianNumbers = "۰۱۲۳۴۵۶۷۸۹";
+    const arabicNumbers = "٠١٢٣٤٥٦٧٨٩";
 
-    str = str.replace(/[۰-۹]/g, d => persian.indexOf(d));
-    str = str.replace(/[٠-٩]/g, d => arabic.indexOf(d));
-    str = str.replace(/,/g, "");
-    str = str.replace(/٬/g, "");
-    str = str.replace(/[^\d.-]/g, "");
+    text = text.replace(/[۰-۹]/g, function (char) {
+        return persianNumbers.indexOf(char);
+    });
 
-    return Number(str) || 0;
+    text = text.replace(/[٠-٩]/g, function (char) {
+        return arabicNumbers.indexOf(char);
+    });
+
+    text = text.replace(/,/g, "");
+    text = text.replace(/٬/g, "");
+    text = text.replace(/٫/g, ".");
+
+    const number = Number(text);
+
+    return isNaN(number) ? 0 : number;
 }
 
-function formatPrice(price) {
-    const number = normalizeNumber(price);
+function formatPrice(value) {
+    const number = normalizeNumber(value);
 
-    if (!number) return "توافقی";
+    if (!number) {
+        return "۰";
+    }
 
-    return new Intl.NumberFormat("fa-IR").format(number) +
-        " تومان";
-}
-
-function escapeHTML(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    return number.toLocaleString("fa-IR");
 }
 
 function toPersianNumber(value) {
-    return String(value ?? "")
-        .replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
+    return String(value)
+        .replace(/\d/g, function (digit) {
+            return "۰۱۲۳۴۵۶۷۸۹"[digit];
+        });
 }
 
 function normalizePhone(phone) {
-    let value = String(phone || "");
+    let value = String(phone || "").trim();
 
-    const persian = "۰۱۲۳۴۵۶۷۸۹";
-    const arabic = "٠١٢٣٤٥٦٧٨٩";
+    value = value.replace(/[۰-۹]/g, function (char) {
+        return "۰۱۲۳۴۵۶۷۸۹".indexOf(char);
+    });
 
-    value = value.replace(/[۰-۹]/g, d => persian.indexOf(d));
-    value = value.replace(/[٠-٩]/g, d => arabic.indexOf(d));
+    value = value.replace(/[٠-٩]/g, function (char) {
+        return "٠١٢٣٤٥٦٧٨٩".indexOf(char);
+    });
 
-    value = value.replace(/[^\d]/g, "");
+    value = value.replace(/\D/g, "");
+
+    if (value.startsWith("0098")) {
+        value = "0" + value.substring(4);
+    }
 
     if (value.startsWith("98")) {
         value = "0" + value.substring(2);
@@ -118,100 +127,138 @@ function normalizePhone(phone) {
 }
 
 function isValidPhone(phone) {
-    return /^09\d{9}$/.test(normalizePhone(phone));
+    const value = normalizePhone(phone);
+
+    return /^09\d{9}$/.test(value);
 }
 
-// ===============================
-// نمایش صفحات ورود / ثبت‌نام
-// ===============================
+function escapeHTML(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* =========================
+   اطلاعات ذخیره شده
+========================= */
+
+function getUser() {
+    return loadJSON(STORAGE_KEYS.user, null);
+}
+
+function getProperties() {
+    return loadJSON(STORAGE_KEYS.properties, []);
+}
+
+function getCustomers() {
+    return loadJSON(STORAGE_KEYS.customers, []);
+}
+
+function saveUser(user) {
+    return saveJSON(STORAGE_KEYS.user, user);
+}
+
+function saveProperties(properties) {
+    return saveJSON(STORAGE_KEYS.properties, properties);
+}
+
+function saveCustomers(customers) {
+    return saveJSON(STORAGE_KEYS.customers, customers);
+}
+
+
+/* =========================
+   صفحات ورود / ثبت نام
+========================= */
 
 function hideAuthPages() {
+    const loginPage = document.getElementById("loginPage");
+    const registerPage = document.getElementById("registerPage");
+    const paymentPage = document.getElementById("paymentPage");
 
-    const pages = [
-        "loginPage",
-        "registerPage",
-        "paymentPage"
-    ];
+    if (loginPage) {
+        loginPage.style.display = "none";
+    }
 
-    pages.forEach(id => {
-        const el = document.getElementById(id);
+    if (registerPage) {
+        registerPage.style.display = "none";
+    }
 
-        if (el) {
-            el.style.display = "none";
-            el.classList.add("hidden");
-        }
-    });
+    if (paymentPage) {
+        paymentPage.style.display = "none";
+    }
 }
 
 function showLogin() {
-
     hideAuthPages();
 
-    const page = document.getElementById("loginPage");
+    const loginPage = document.getElementById("loginPage");
 
-    if (page) {
-        page.style.display = "block";
-        page.classList.remove("hidden");
+    if (loginPage) {
+        loginPage.style.display = "block";
     }
 }
 
 function showRegister() {
-
     hideAuthPages();
 
-    const page = document.getElementById("registerPage");
+    const registerPage = document.getElementById("registerPage");
 
-    if (page) {
-        page.style.display = "block";
-        page.classList.remove("hidden");
+    if (registerPage) {
+        registerPage.style.display = "block";
     }
 }
 
 function showPayment() {
-
     hideAuthPages();
 
-    const page = document.getElementById("paymentPage");
+    const paymentPage = document.getElementById("paymentPage");
 
-    if (page) {
-        page.style.display = "block";
-        page.classList.remove("hidden");
+    if (paymentPage) {
+        paymentPage.style.display = "block";
     }
 }
 
-// ===============================
-// ثبت نام
-// ===============================
+
+/* =========================
+   ثبت نام
+========================= */
 
 function register() {
+    const nameInput = document.getElementById("registerName");
+    const phoneInput = document.getElementById("registerPhone");
+    const termsInput = document.getElementById("terms");
 
-    const name =
-        document.getElementById("registerName")?.value.trim();
+    if (!nameInput || !phoneInput) {
+        alert("فرم ثبت‌نام پیدا نشد.");
+        return;
+    }
 
-    const phone =
-        normalizePhone(
-            document.getElementById("registerPhone")?.value
-        );
+    const name = nameInput.value.trim();
+    const phone = normalizePhone(phoneInput.value);
 
-    const terms =
-        document.getElementById("terms")?.checked;
-
-    if (!name) {
-        alert("لطفاً نام و نام خانوادگی را وارد کنید.");
+    if (name.length < 2) {
+        alert("لطفاً نام خود را وارد کنید.");
+        nameInput.focus();
         return;
     }
 
     if (!isValidPhone(phone)) {
-        alert("شماره موبایل معتبر وارد کنید.\nمثال: 09123456789");
+        alert("شماره موبایل صحیح نیست.\nمثال: 09123456789");
+        phoneInput.focus();
         return;
     }
 
-    if (!terms) {
-        alert("لطفاً قوانین و شرایط استفاده را بپذیرید.");
+    if (termsInput && !termsInput.checked) {
+        alert("لطفاً قوانین و شرایط را تأیید کنید.");
         return;
     }
 
-    currentUser = {
+    const user = {
         id: generateId(),
         name: name,
         phone: phone,
@@ -219,51 +266,50 @@ function register() {
         createdAt: new Date().toISOString()
     };
 
-    saveUser();
+    if (!saveUser(user)) {
+        return;
+    }
 
-    alert(
-        "اطلاعات شما با موفقیت ثبت شد.\n" +
-        "اکنون می‌توانید اشتراک آزمایشی را فعال کنید."
-    );
+    alert("ثبت‌نام با موفقیت انجام شد.");
 
     showPayment();
 }
 
-// ===============================
-// ورود
-// ===============================
+
+/* =========================
+   ورود
+========================= */
 
 function login() {
+    const phoneInput = document.getElementById("loginPhone");
 
-    const phone =
-        normalizePhone(
-            document.getElementById("loginPhone")?.value
-        );
-
-    if (!isValidPhone(phone)) {
-        alert("لطفاً شماره موبایل معتبر وارد کنید.");
+    if (!phoneInput) {
+        alert("فرم ورود پیدا نشد.");
         return;
     }
 
-    if (!currentUser) {
+    const phone = normalizePhone(phoneInput.value);
 
-        alert(
-            "حسابی با این دستگاه پیدا نشد.\n" +
-            "ابتدا ثبت‌نام کنید."
-        );
+    if (!isValidPhone(phone)) {
+        alert("شماره موبایل صحیح نیست.\nمثال: 09123456789");
+        phoneInput.focus();
+        return;
+    }
 
+    const user = getUser();
+
+    if (!user) {
+        alert("حسابی برای این شماره وجود ندارد. ابتدا ثبت‌نام کنید.");
         showRegister();
         return;
     }
 
-    if (
-        normalizePhone(currentUser.phone) !== phone
-    ) {
-        alert("این شماره موبایل با حساب ثبت‌شده مطابقت ندارد.");
+    if (normalizePhone(user.phone) !== phone) {
+        alert("این شماره با حساب ثبت‌شده مطابقت ندارد.");
         return;
     }
 
-    if (!isSubscriptionValid()) {
+    if (!isSubscriptionValid(user)) {
         showPayment();
         return;
     }
@@ -271,1186 +317,746 @@ function login() {
     openApplication();
 }
 
-// ===============================
-// اشتراک
-// ===============================
 
-function isSubscriptionValid() {
+/* =========================
+   اشتراک
+========================= */
 
-    if (!currentUser?.subscriptionUntil) {
+function isSubscriptionValid(user) {
+    if (!user || !user.subscriptionUntil) {
         return false;
     }
 
-    return (
-        new Date(currentUser.subscriptionUntil).getTime()
-        > Date.now()
-    );
+    const expiry = new Date(user.subscriptionUntil).getTime();
+
+    return expiry > Date.now();
 }
 
 function activateSubscription() {
+    const user = getUser();
 
-    if (!currentUser) return;
+    if (!user) {
+        showRegister();
+        return;
+    }
 
-    const date = new Date();
+    const expiry = new Date();
 
-    date.setDate(
-        date.getDate() + APP_CONFIG.subscriptionDays
+    expiry.setDate(
+        expiry.getDate() + APP_CONFIG.subscriptionDays
     );
 
-    currentUser.subscriptionUntil =
-        date.toISOString();
+    user.subscriptionUntil = expiry.toISOString();
 
-    saveUser();
+    saveUser(user);
+
+    alert("اشتراک شما با موفقیت فعال شد.");
+
+    openApplication();
 }
 
 function pay() {
+    /*
+       فعلاً پرداخت آزمایشی است.
+       بعداً می‌توان درگاه واقعی را به این قسمت وصل کرد.
+    */
 
-    if (!currentUser) {
+    const user = getUser();
+
+    if (!user) {
         alert("ابتدا ثبت‌نام کنید.");
         showRegister();
         return;
     }
 
     activateSubscription();
-
-    alert(
-        "پرداخت آزمایشی با موفقیت انجام شد.\n" +
-        "اشتراک یک‌ساله شما فعال شد."
-    );
-
-    openApplication();
 }
 
 function renewSubscription() {
-
-    if (!currentUser) {
-        showLogin();
-        return;
-    }
-
     activateSubscription();
-
-    alert("اشتراک شما برای یک سال تمدید شد.");
-
-    updateAccountInfo();
 }
 
-// ===============================
-// ورود به برنامه
-// ===============================
+
+/* =========================
+   باز کردن برنامه
+========================= */
 
 function openApplication() {
+    const authScreen = document.getElementById("authScreen");
+    const appScreen = document.getElementById("appScreen");
 
-    const auth =
-        document.getElementById("authScreen");
-
-    const app =
-        document.getElementById("appScreen");
-
-    if (auth) {
-        auth.style.display = "none";
-        auth.classList.add("hidden");
+    if (authScreen) {
+        authScreen.style.display = "none";
     }
 
-    if (app) {
-        app.style.display = "block";
-        app.classList.remove("hidden");
+    if (appScreen) {
+        appScreen.style.display = "block";
     }
 
-    updateDashboard();
-    renderProperties();
-    renderCustomers();
-    updateAccountInfo();
+    updateAll();
 }
 
 function logout() {
+    const appScreen = document.getElementById("appScreen");
+    const authScreen = document.getElementById("authScreen");
 
-    const app =
-        document.getElementById("appScreen");
-
-    const auth =
-        document.getElementById("authScreen");
-
-    if (app) {
-        app.style.display = "none";
-        app.classList.add("hidden");
+    if (appScreen) {
+        appScreen.style.display = "none";
     }
 
-    if (auth) {
-        auth.style.display = "block";
-        auth.classList.remove("hidden");
+    if (authScreen) {
+        authScreen.style.display = "block";
     }
 
     showLogin();
 }
 
-// ===============================
-// منو
-// ===============================
+
+/* =========================
+   منوی اصلی
+========================= */
 
 function toggleMenu() {
+    const menu = document.getElementById("mainMenu");
 
-    const menu =
-        document.getElementById("mainMenu");
-
-    menu?.classList.toggle("open");
-}
-
-function showSection(section) {
-
-    document
-        .querySelectorAll(".section")
-        .forEach(el => {
-            el.style.display = "none";
-            el.classList.remove("active");
-        });
-
-    const target =
-        document.getElementById(section);
-
-    if (target) {
-        target.style.display = "block";
-        target.classList.add("active");
-    }
-
-    if (section === "dashboard") {
-        updateDashboard();
-    }
-
-    if (section === "properties") {
-        renderProperties();
-    }
-
-    if (section === "customers") {
-        renderCustomers();
-    }
-
-    document
-        .getElementById("mainMenu")
-        ?.classList.remove("open");
-}
-
-// ===============================
-// داشبورد
-// ===============================
-
-function updateDashboard() {
-
-    const propertyCount =
-        document.getElementById("propertyCount");
-
-    const customerCount =
-        document.getElementById("customerCount");
-
-    const availableCount =
-        document.getElementById("availableCount");
-
-    const specialCount =
-        document.getElementById("specialCount");
-
-    if (propertyCount)
-        propertyCount.textContent =
-            toPersianNumber(properties.length);
-
-    if (customerCount)
-        customerCount.textContent =
-            toPersianNumber(customers.length);
-
-    if (availableCount)
-        availableCount.textContent =
-            toPersianNumber(
-                properties.filter(
-                    p =>
-                        p.status === "موجود" ||
-                        p.status === "available"
-                ).length
-            );
-
-    if (specialCount)
-        specialCount.textContent =
-            toPersianNumber(
-                properties.filter(
-                    p => p.special
-                ).length
-            );
-
-    renderLatestProperties();
-}
-
-// ===============================
-// املاک
-// ===============================
-
-function openPropertyForm(id = null) {
-
-    clearPropertyForm();
-
-    if (id) {
-
-        const property =
-            properties.find(p => p.id === id);
-
-        if (!property) return;
-
-        document.getElementById("propertyId").value =
-            property.id;
-
-        document.getElementById("propertyType").value =
-            property.type || "آپارتمان";
-
-        document.getElementById("propertyArea").value =
-            property.area || "";
-
-        document.getElementById("propertySize").value =
-            property.size || "";
-
-        document.getElementById("propertyPrice").value =
-            property.price || "";
-
-        document.getElementById("propertyRooms").value =
-            property.rooms || "";
-
-        document.getElementById("propertyFloor").value =
-            property.floor || "";
-
-        document.getElementById("propertyAge").value =
-            property.age || "";
-
-        document.getElementById("propertyParking").checked =
-            !!property.parking;
-
-        document.getElementById("propertyElevator").checked =
-            !!property.elevator;
-
-        document.getElementById("propertyStorage").checked =
-            !!property.storage;
-
-        document.getElementById("propertySpecial").checked =
-            !!property.special;
-
-        document.getElementById("propertyStatus").value =
-            property.status || "موجود";
-
-        document.getElementById("propertyDescription").value =
-            property.description || "";
-    }
-
-    const modal =
-        document.getElementById("propertyModal");
-
-    if (modal) {
-        modal.style.display = "flex";
-        modal.classList.remove("hidden");
-    }
-}
-
-function clearPropertyForm() {
-
-    [
-        "propertyId",
-        "propertyArea",
-        "propertySize",
-        "propertyPrice",
-        "propertyRooms",
-        "propertyFloor",
-        "propertyAge",
-        "propertyDescription"
-    ].forEach(id => {
-
-        const el =
-            document.getElementById(id);
-
-        if (el) el.value = "";
-    });
-
-    const type =
-        document.getElementById("propertyType");
-
-    if (type) type.value = "آپارتمان";
-
-    const status =
-        document.getElementById("propertyStatus");
-
-    if (status) status.value = "موجود";
-
-    [
-        "propertyParking",
-        "propertyElevator",
-        "propertyStorage",
-        "propertySpecial"
-    ].forEach(id => {
-
-        const el =
-            document.getElementById(id);
-
-        if (el) el.checked = false;
-    });
-}
-
-function saveProperty() {
-
-    const id =
-        document.getElementById("propertyId").value ||
-        generateId();
-
-    const property = {
-
-        id,
-
-        type:
-            document.getElementById("propertyType").value,
-
-        area:
-            document.getElementById("propertyArea").value.trim(),
-
-        size:
-            normalizeNumber(
-                document.getElementById("propertySize").value
-            ),
-
-        price:
-            normalizeNumber(
-                document.getElementById("propertyPrice").value
-            ),
-
-        rooms:
-            normalizeNumber(
-                document.getElementById("propertyRooms").value
-            ),
-
-        floor:
-            normalizeNumber(
-                document.getElementById("propertyFloor").value
-            ),
-
-        age:
-            normalizeNumber(
-                document.getElementById("propertyAge").value
-            ),
-
-        parking:
-            document.getElementById("propertyParking").checked,
-
-        elevator:
-            document.getElementById("propertyElevator").checked,
-
-        storage:
-            document.getElementById("propertyStorage").checked,
-
-        special:
-            document.getElementById("propertySpecial").checked,
-
-        status:
-            document.getElementById("propertyStatus").value,
-
-        description:
-            document.getElementById("propertyDescription").value.trim(),
-
-        updatedAt:
-            new Date().toISOString()
-    };
-
-    const index =
-        properties.findIndex(p => p.id === id);
-
-    if (index >= 0) {
-        properties[index] = property;
-    } else {
-        properties.unshift(property);
-    }
-
-    saveProperties();
-
-    closePropertyModal();
-    renderProperties();
-    updateDashboard();
-
-    alert("ملک با موفقیت ذخیره شد.");
-}
-
-function closePropertyModal() {
-
-    const modal =
-        document.getElementById("propertyModal");
-
-    if (modal) {
-        modal.style.display = "none";
-        modal.classList.add("hidden");
-    }
-}
-
-function deleteProperty(id) {
-
-    if (!confirm("آیا از حذف این ملک مطمئن هستید؟")) {
+    if (!menu) {
         return;
     }
 
-    properties =
-        properties.filter(p => p.id !== id);
-
-    saveProperties();
-
-    renderProperties();
-    updateDashboard();
+    if (menu.style.display === "none" || menu.style.display === "") {
+        menu.style.display = "block";
+    } else {
+        menu.style.display = "none";
+    }
 }
 
+function closeMenu() {
+    const menu = document.getElementById("mainMenu");
+
+    if (menu) {
+        menu.style.display = "none";
+    }
+}
+
+
+/* =========================
+   بخش‌های برنامه
+========================= */
+
+function showSection(sectionName) {
+    const sections = document.querySelectorAll(".section");
+
+    sections.forEach(function (section) {
+        section.style.display = "none";
+    });
+
+    const target = document.getElementById(sectionName);
+
+    if (target) {
+        target.style.display = "block";
+    }
+
+    closeMenu();
+
+    if (sectionName === "dashboard") {
+        updateDashboard();
+    }
+
+    if (sectionName === "properties") {
+        renderProperties();
+    }
+
+    if (sectionName === "customers") {
+        renderCustomers();
+    }
+
+    if (sectionName === "settings") {
+        updateSettings();
+    }
+}
+
+
+/* =========================
+   داشبورد
+========================= */
+
+function updateDashboard() {
+    const properties = getProperties();
+    const customers = getCustomers();
+
+    const propertyCount = document.getElementById("propertyCount");
+    const customerCount = document.getElementById("customerCount");
+    const availableCount = document.getElementById("availableCount");
+    const specialCount = document.getElementById("specialCount");
+    const latestProperties = document.getElementById("latestProperties");
+
+    if (propertyCount) {
+        propertyCount.textContent = toPersianNumber(properties.length);
+    }
+
+    if (customerCount) {
+        customerCount.textContent = toPersianNumber(customers.length);
+    }
+
+    const available = properties.filter(function (item) {
+        return item.status === "موجود" ||
+               item.status === "available" ||
+               item.status === "فروش";
+    });
+
+    if (availableCount) {
+        availableCount.textContent = toPersianNumber(available.length);
+    }
+
+    const special = properties.filter(function (item) {
+        return item.special && String(item.special).trim() !== "";
+    });
+
+    if (specialCount) {
+        specialCount.textContent = toPersianNumber(special.length);
+    }
+
+    if (latestProperties) {
+        const latest = properties
+            .slice()
+            .sort(function (a, b) {
+                return Number(b.createdAt || 0) -
+                       Number(a.createdAt || 0);
+            })
+            .slice(0, 5);
+
+        if (latest.length === 0) {
+            latestProperties.innerHTML =
+                "<p>هنوز فایلی ثبت نشده است.</p>";
+            return;
+        }
+
+        latestProperties.innerHTML = latest.map(function (item) {
+            return propertyCardHTML(item);
+        }).join("");
+    }
+}
+
+
+/* =========================
+   فایل‌های ملک
+========================= */
+
 function propertyCardHTML(property) {
+    const title =
+        property.type ||
+        "ملک";
+
+    const size =
+        property.size ?
+        toPersianNumber(property.size) + " متر" :
+        "متراژ نامشخص";
+
+    const price =
+        property.totalPrice ?
+        formatPrice(property.totalPrice) + " تومان" :
+        "قیمت ثبت نشده";
+
+    const rooms =
+        property.rooms ?
+        toPersianNumber(property.rooms) + " خواب" :
+        "";
+
+    const status =
+        property.status || "موجود";
 
     return `
-        <div class="property-card">
+        <div class="property-card" data-id="${escapeHTML(property.id)}">
+            <div class="property-card-content">
+                <h3>${escapeHTML(title)}</h3>
 
-            <div class="card-header">
+                <p>
+                    <strong>متراژ:</strong>
+                    ${escapeHTML(size)}
+                </p>
 
-                <strong>
-                    ${escapeHTML(property.type || "ملک")}
-                </strong>
+                <p>
+                    <strong>قیمت:</strong>
+                    ${escapeHTML(price)}
+                </p>
+
+                <p>
+                    <strong>خواب:</strong>
+                    ${escapeHTML(rooms)}
+                </p>
+
+                <p>
+                    <strong>وضعیت:</strong>
+                    ${escapeHTML(status)}
+                </p>
 
                 ${
-                    property.special
-                        ? `<span class="special-badge">⭐ ویژه</span>`
-                        : ""
+                    property.description
+                    ? `<p>${escapeHTML(property.description)}</p>`
+                    : ""
                 }
 
-            </div>
+                <div class="property-actions">
+                    <button type="button"
+                        onclick="editProperty('${property.id}')">
+                        ویرایش
+                    </button>
 
-            <div class="card-body">
-
-                <p>
-                    📍 ${escapeHTML(property.area || "نامشخص")}
-                </p>
-
-                <p>
-                    📐 ${toPersianNumber(property.size || 0)} متر
-                </p>
-
-                <p>
-                    💰 ${formatPrice(property.price)}
-                </p>
-
-                <p>
-                    🛏️ ${toPersianNumber(property.rooms || 0)} خواب
-                </p>
-
-                <div class="features">
-                    ${property.parking ? "🚗 پارکینگ " : ""}
-                    ${property.elevator ? "🛗 آسانسور " : ""}
-                    ${property.storage ? "📦 انباری" : ""}
+                    <button type="button"
+                        onclick="deleteProperty('${property.id}')">
+                        حذف
+                    </button>
                 </div>
-
             </div>
-
-            <div class="card-actions">
-
-                <button
-                    onclick="openPropertyForm('${property.id}')">
-                    ✏️ ویرایش
-                </button>
-
-                <button
-                    onclick="deleteProperty('${property.id}')">
-                    🗑️ حذف
-                </button>
-
-            </div>
-
         </div>
     `;
 }
 
 function renderProperties() {
+    const container =
+        document.getElementById("propertiesList") ||
+        document.getElementById("propertyList") ||
+        document.getElementById("propertiesContainer");
 
-    const list =
-        document.getElementById("propertyList");
-
-    if (!list) return;
-
-    let result = [...properties];
-
-    const search =
-        document.getElementById("propertySearch")
-            ?.value.trim().toLowerCase();
-
-    if (search) {
-
-        result = result.filter(p =>
-            `${p.area || ""} ${p.type || ""} ${p.description || ""}`
-                .toLowerCase()
-                .includes(search)
-        );
+    if (!container) {
+        return;
     }
 
-    const type =
-        document.getElementById("filterType")?.value;
+    let properties = getProperties();
 
-    if (type) {
-        result =
-            result.filter(p => p.type === type);
-    }
+    const searchInput =
+        document.getElementById("propertySearch");
 
-    const area =
-        document.getElementById("filterArea")
-            ?.value.trim().toLowerCase();
+    const typeFilter =
+        document.getElementById("propertyTypeFilter");
 
-    if (area) {
+    const statusFilter =
+        document.getElementById("propertyStatusFilter");
 
-        result =
-            result.filter(p =>
-                String(p.area || "")
-                    .toLowerCase()
-                    .includes(area)
-            );
-    }
-
-    const minSize =
-        normalizeNumber(
-            document.getElementById("filterMinSize")?.value
-        );
-
-    const maxSize =
-        normalizeNumber(
-            document.getElementById("filterMaxSize")?.value
-        );
-
-    if (minSize) {
-        result =
-            result.filter(
-                p => normalizeNumber(p.size) >= minSize
-            );
-    }
-
-    if (maxSize) {
-        result =
-            result.filter(
-                p => normalizeNumber(p.size) <= maxSize
-            );
-    }
-
-    const minPrice =
-        normalizeNumber(
-            document.getElementById("filterMinPrice")?.value
-        );
-
-    const maxPrice =
-        normalizeNumber(
-            document.getElementById("filterMaxPrice")?.value
-        );
-
-    if (minPrice) {
-        result =
-            result.filter(
-                p => normalizeNumber(p.price) >= minPrice
-            );
-    }
-
-    if (maxPrice) {
-        result =
-            result.filter(
-                p => normalizeNumber(p.price) <= maxPrice
-            );
-    }
-
-    const status =
-        document.getElementById("filterStatus")?.value;
-
-    if (status) {
-
-        result =
-            result.filter(
-                p => p.status === status
-            );
-    }
-
-    const special =
-        document.getElementById("filterSpecial")?.value;
-
-    if (special === "true") {
-        result =
-            result.filter(p => p.special);
-    }
-
-    const sort =
-        document.getElementById("propertySort")?.value;
-
-    if (sort === "priceLow") {
-
-        result.sort(
-            (a, b) =>
-                normalizeNumber(a.price) -
-                normalizeNumber(b.price)
-        );
-    }
-
-    if (sort === "priceHigh") {
-
-        result.sort(
-            (a, b) =>
-                normalizeNumber(b.price) -
-                normalizeNumber(a.price)
-        );
-    }
-
-    if (sort === "sizeLow") {
-
-        result.sort(
-            (a, b) =>
-                normalizeNumber(a.size) -
-                normalizeNumber(b.size)
-        );
-    }
-
-    if (sort === "sizeHigh") {
-
-        result.sort(
-            (a, b) =>
-                normalizeNumber(b.size) -
-                normalizeNumber(a.size)
-        );
-    }
-
-    list.innerHTML =
-        result.length
-            ? result.map(propertyCardHTML).join("")
-            : `<div class="empty-state">ملکی پیدا نشد.</div>`;
-
-    const count =
-        document.getElementById("propertyResultCount");
-
-    if (count) {
-
-        count.textContent =
-            `${toPersianNumber(result.length)} فایل`;
-    }
-}
-
-function renderLatestProperties() {
-
-    const list =
-        document.getElementById("latestProperties");
-
-    if (!list) return;
-
-    const latest =
-        properties.slice(0, 5);
-
-    list.innerHTML =
-        latest.length
-            ? latest.map(propertyCardHTML).join("")
-            : `<div class="empty-state">هنوز فایلی ثبت نشده است.</div>`;
-}
-
-function resetFilters() {
-
-    [
-        "propertySearch",
-        "filterArea",
-        "filterMinSize",
-        "filterMaxSize",
-        "filterMinPrice",
-        "filterMaxPrice"
-    ].forEach(id => {
-
-        const el =
-            document.getElementById(id);
-
-        if (el) el.value = "";
-    });
-
-    [
-        "filterType",
-        "filterStatus",
-        "filterSpecial"
-    ].forEach(id => {
-
-        const el =
-            document.getElementById(id);
-
-        if (el) el.value = "";
-    });
-
-    const sort =
+    const sortSelect =
         document.getElementById("propertySort");
 
-    if (sort) sort.value = "newest";
+    const search =
+        searchInput ?
+        searchInput.value.trim().toLowerCase() :
+        "";
 
-    renderProperties();
-}
-
-// ===============================
-// مشتریان
-// ===============================
-
-function openCustomerForm(id = null) {
-
-    clearCustomerForm();
-
-    if (id) {
-
-        const customer =
-            customers.find(c => c.id === id);
-
-        if (!customer) return;
-
-        document.getElementById("customerId").value =
-            customer.id;
-
-        document.getElementById("customerName").value =
-            customer.name || "";
-
-        document.getElementById("customerPhone").value =
-            customer.phone || "";
-
-        document.getElementById("customerType").value =
-            customer.type || "خرید";
-
-        document.getElementById("customerArea").value =
-            customer.area || "";
-
-        document.getElementById("customerMinSize").value =
-            customer.minSize || "";
-
-        document.getElementById("customerMaxSize").value =
-            customer.maxSize || "";
-
-        document.getElementById("customerMinPrice").value =
-            customer.minPrice || "";
-
-        document.getElementById("customerMaxPrice").value =
-            customer.maxPrice || "";
-
-        document.getElementById("customerRooms").value =
-            customer.rooms || "";
-
-        document.getElementById("customerAge").value =
-            customer.age || "";
-
-        document.getElementById("customerParking").checked =
-            !!customer.parking;
-
-        document.getElementById("customerElevator").checked =
-            !!customer.elevator;
-
-        document.getElementById("customerStorage").checked =
-            !!customer.storage;
-
-        document.getElementById("customerDescription").value =
-            customer.description || "";
+    if (search) {
+        properties = properties.filter(function (item) {
+            const text = JSON.stringify(item).toLowerCase();
+            return text.includes(search);
+        });
     }
 
-    const modal =
-        document.getElementById("customerModal");
+    if (typeFilter && typeFilter.value) {
+        properties = properties.filter(function (item) {
+            return item.type === typeFilter.value;
+        });
+    }
+
+    if (statusFilter && statusFilter.value) {
+        properties = properties.filter(function (item) {
+            return item.status === statusFilter.value;
+        });
+    }
+
+    if (sortSelect) {
+        const sort = sortSelect.value;
+
+        if (sort === "newest") {
+            properties.sort(function (a, b) {
+                return Number(b.createdAt || 0) -
+                       Number(a.createdAt || 0);
+            });
+        }
+
+        if (sort === "oldest") {
+            properties.sort(function (a, b) {
+                return Number(a.createdAt || 0) -
+                       Number(b.createdAt || 0);
+            });
+        }
+
+        if (sort === "priceLow") {
+            properties.sort(function (a, b) {
+                return normalizeNumber(a.totalPrice) -
+                       normalizeNumber(b.totalPrice);
+            });
+        }
+
+        if (sort === "priceHigh") {
+            properties.sort(function (a, b) {
+                return normalizeNumber(b.totalPrice) -
+                       normalizeNumber(a.totalPrice);
+            });
+        }
+
+        if (sort === "sizeLow") {
+            properties.sort(function (a, b) {
+                return normalizeNumber(a.size) -
+                       normalizeNumber(b.size);
+            });
+        }
+
+        if (sort === "sizeHigh") {
+            properties.sort(function (a, b) {
+                return normalizeNumber(b.size) -
+                       normalizeNumber(a.size);
+            });
+        }
+    }
+
+    if (properties.length === 0) {
+        container.innerHTML =
+            "<p>فایلی پیدا نشد.</p>";
+        return;
+    }
+
+    container.innerHTML = properties
+        .map(function (property) {
+            return propertyCardHTML(property);
+        })
+        .join("");
+}
+
+
+/* =========================
+   افزودن ملک
+========================= */
+
+function getInputValue(id) {
+    const element = document.getElementById(id);
+
+    if (!element) {
+        return "";
+    }
+
+    return element.value.trim();
+}
+
+function getChecked(id) {
+    const element = document.getElementById(id);
+
+    return element ? element.checked : false;
+}
+
+function addProperty() {
+    const type = getInputValue("propertyType");
+    const area = getInputValue("propertyArea");
+    const size = getInputValue("propertySize");
+    const totalPrice = getInputValue("propertyPrice");
+    const rooms = getInputValue("propertyRooms");
+    const floor = getInputValue("propertyFloor");
+    const buildYear = getInputValue("propertyBuildYear");
+
+    const parking = getChecked("propertyParking");
+    const elevator = getChecked("propertyElevator");
+    const storage = getChecked("propertyStorage");
+
+    const special = getInputValue("propertySpecial");
+    const status = getInputValue("propertyStatus");
+    const description = getInputValue("propertyDescription");
+
+    if (!type) {
+        alert("نوع ملک را انتخاب کنید.");
+        return;
+    }
+
+    if (!size) {
+        alert("متراژ ملک را وارد کنید.");
+        return;
+    }
+
+    const properties = getProperties();
+
+    const property = {
+        id: generateId(),
+        type: type,
+        area: area,
+        size: normalizeNumber(size),
+        totalPrice: normalizeNumber(totalPrice),
+        rooms: normalizeNumber(rooms),
+        floor: floor,
+        buildYear: buildYear,
+        parking: parking,
+        elevator: elevator,
+        storage: storage,
+        special: special,
+        status: status || "موجود",
+        description: description,
+        createdAt: Date.now()
+    };
+
+    properties.push(property);
+
+    saveProperties(properties);
+
+    alert("فایل ملک با موفقیت ثبت شد.");
+
+    closePropertyModal();
+
+    clearPropertyForm();
+
+    renderProperties();
+
+    updateDashboard();
+}
+
+
+/* =========================
+   ویرایش ملک
+========================= */
+
+function editProperty(id) {
+    const properties = getProperties();
+
+    const property = properties.find(function (item) {
+        return String(item.id) === String(id);
+    });
+
+    if (!property) {
+        alert("فایل ملک پیدا نشد.");
+        return;
+    }
+
+    setInputValue("propertyType", property.type);
+    setInputValue("propertyArea", property.area);
+    setInputValue("propertySize", property.size);
+    setInputValue("propertyPrice", property.totalPrice);
+    setInputValue("propertyRooms", property.rooms);
+    setInputValue("propertyFloor", property.floor);
+    setInputValue("propertyBuildYear", property.buildYear);
+    setInputValue("propertySpecial", property.special);
+    setInputValue("propertyStatus", property.status);
+    setInputValue("propertyDescription", property.description);
+
+    setChecked("propertyParking", property.parking);
+    setChecked("propertyElevator", property.elevator);
+    setChecked("propertyStorage", property.storage);
+
+    const modal = document.getElementById("propertyModal");
+
+    if (modal) {
+        modal.dataset.editingId = property.id;
+        modal.style.display = "flex";
+    }
+}
+
+function updateProperty() {
+    const modal = document.getElementById("propertyModal");
+
+    if (!modal || !modal.dataset.editingId) {
+        addProperty();
+        return;
+    }
+
+    const id = modal.dataset.editingId;
+
+    let properties = getProperties();
+
+    const index = properties.findIndex(function (item) {
+        return String(item.id) === String(id);
+    });
+
+    if (index === -1) {
+        alert("ملک پیدا نشد.");
+        return;
+    }
+
+    properties[index] = {
+        ...properties[index],
+
+        type: getInputValue("propertyType"),
+        area: getInputValue("propertyArea"),
+        size: normalizeNumber(getInputValue("propertySize")),
+        totalPrice: normalizeNumber(getInputValue("propertyPrice")),
+        rooms: normalizeNumber(getInputValue("propertyRooms")),
+        floor: getInputValue("propertyFloor"),
+        buildYear: getInputValue("propertyBuildYear"),
+
+        parking: getChecked("propertyParking"),
+        elevator: getChecked("propertyElevator"),
+        storage: getChecked("propertyStorage"),
+
+        special: getInputValue("propertySpecial"),
+        status: getInputValue("propertyStatus") || "موجود",
+        description: getInputValue("propertyDescription")
+    };
+
+    saveProperties(properties);
+
+    alert("اطلاعات ملک ویرایش شد.");
+
+    delete modal.dataset.editingId;
+
+    closePropertyModal();
+
+    clearPropertyForm();
+
+    renderProperties();
+
+    updateDashboard();
+}
+
+
+/* =========================
+   حذف ملک
+========================= */
+
+function deleteProperty(id) {
+    const properties = getProperties();
+
+    const confirmed =
+        confirm("آیا از حذف این فایل اطمینان دارید؟");
+
+    if (!confirmed) {
+        return;
+    }
+
+    const newProperties = properties.filter(function (item) {
+        return String(item.id) !== String(id);
+    });
+
+    saveProperties(newProperties);
+
+    renderProperties();
+
+    updateDashboard();
+}
+
+
+/* =========================
+   فرم ملک
+========================= */
+
+function clearPropertyForm() {
+    const ids = [
+        "propertyType",
+        "propertyArea",
+        "propertySize",
+        "propertyPrice",
+        "propertyRooms",
+        "propertyFloor",
+        "propertyBuildYear",
+        "propertySpecial",
+        "propertyStatus",
+        "propertyDescription"
+    ];
+
+    ids.forEach(function (id) {
+        setInputValue(id, "");
+    });
+
+    setChecked("propertyParking", false);
+    setChecked("propertyElevator", false);
+    setChecked("propertyStorage", false);
+
+    const modal = document.getElementById("propertyModal");
+
+    if (modal) {
+        delete modal.dataset.editingId;
+    }
+}
+
+function setInputValue(id, value) {
+    const element = document.getElementById(id);
+
+    if (element) {
+        element.value =
+            value === null ||
+            value === undefined
+                ? ""
+                : value;
+    }
+}
+
+function setChecked(id, value) {
+    const element = document.getElementById(id);
+
+    if (element) {
+        element.checked = Boolean(value);
+    }
+}
+
+function openPropertyModal() {
+    clearPropertyForm();
+
+    const modal = document.getElementById("propertyModal");
 
     if (modal) {
         modal.style.display = "flex";
-        modal.classList.remove("hidden");
     }
 }
 
-function clearCustomerForm() {
-
-    [
-        "customerId",
-        "customerName",
-        "customerPhone",
-        "customerArea",
-        "customerMinSize",
-        "customerMaxSize",
-        "customerMinPrice",
-        "customerMaxPrice",
-        "customerRooms",
-        "customerAge",
-        "customerDescription"
-    ].forEach(id => {
-
-        const el =
-            document.getElementById(id);
-
-        if (el) el.value = "";
-    });
-
-    const type =
-        document.getElementById("customerType");
-
-    if (type) type.value = "خرید";
-
-    [
-        "customerParking",
-        "customerElevator",
-        "customerStorage"
-    ].forEach(id => {
-
-        const el =
-            document.getElementById(id);
-
-        if (el) el.checked = false;
-    });
-}
-
-function saveCustomer() {
-
-    const id =
-        document.getElementById("customerId").value ||
-        generateId();
-
-    const name =
-        document.getElementById("customerName").value.trim();
-
-    const phone =
-        normalizePhone(
-            document.getElementById("customerPhone").value
-        );
-
-    if (!name) {
-        alert("نام مشتری را وارد کنید.");
-        return;
-    }
-
-    if (!isValidPhone(phone)) {
-        alert("شماره موبایل مشتری معتبر نیست.");
-        return;
-    }
-
-    const customer = {
-
-        id,
-        name,
-        phone,
-
-        type:
-            document.getElementById("customerType").value,
-
-        area:
-            document.getElementById("customerArea").value.trim(),
-
-        minSize:
-            normalizeNumber(
-                document.getElementById("customerMinSize").value
-            ),
-
-        maxSize:
-            normalizeNumber(
-                document.getElementById("customerMaxSize").value
-            ),
-
-        minPrice:
-            normalizeNumber(
-                document.getElementById("customerMinPrice").value
-            ),
-
-        maxPrice:
-            normalizeNumber(
-                document.getElementById("customerMaxPrice").value
-            ),
-
-        rooms:
-            normalizeNumber(
-                document.getElementById("customerRooms").value
-            ),
-
-        age:
-            normalizeNumber(
-                document.getElementById("customerAge").value
-            ),
-
-        parking:
-            document.getElementById("customerParking").checked,
-
-        elevator:
-            document.getElementById("customerElevator").checked,
-
-        storage:
-            document.getElementById("customerStorage").checked,
-
-        description:
-            document.getElementById("customerDescription").value.trim(),
-
-        updatedAt:
-            new Date().toISOString()
-    };
-
-    const index =
-        customers.findIndex(c => c.id === id);
-
-    if (index >= 0) {
-        customers[index] = customer;
-    } else {
-        customers.unshift(customer);
-    }
-
-    saveCustomers();
-
-    closeCustomerModal();
-    renderCustomers();
-    updateDashboard();
-
-    alert("مشتری با موفقیت ذخیره شد.");
-}
-
-function closeCustomerModal() {
-
-    const modal =
-        document.getElementById("customerModal");
+function closePropertyModal() {
+    const modal = document.getElementById("propertyModal");
 
     if (modal) {
         modal.style.display = "none";
-        modal.classList.add("hidden");
+        delete modal.dataset.editingId;
     }
 }
 
-function deleteCustomer(id) {
 
-    if (!confirm("آیا از حذف این مشتری مطمئن هستید؟")) {
-        return;
-    }
-
-    customers =
-        customers.filter(c => c.id !== id);
-
-    saveCustomers();
-
-    renderCustomers();
-    updateDashboard();
-}
-
-// ===============================
-// تطبیق هوشمند
-// ===============================
-
-function calculateMatch(customer, property) {
-
-    let score = 0;
-    let total = 0;
-
-    if (customer.minSize || customer.maxSize) {
-
-        total += 25;
-
-        const size =
-            normalizeNumber(property.size);
-
-        const min =
-            normalizeNumber(customer.minSize);
-
-        const max =
-            normalizeNumber(customer.maxSize);
-
-        if (
-            (!min || size >= min) &&
-            (!max || size <= max)
-        ) {
-            score += 25;
-        } else if (
-            min &&
-            size >= min * 0.9 &&
-            (!max || size <= max * 1.1)
-        ) {
-            score += 15;
-        }
-    }
-
-    if (customer.minPrice || customer.maxPrice) {
-
-        total += 30;
-
-        const price =
-            normalizeNumber(property.price);
-
-        const min =
-            normalizeNumber(customer.minPrice);
-
-        const max =
-            normalizeNumber(customer.maxPrice);
-
-        if (
-            (!min || price >= min) &&
-            (!max || price <= max)
-        ) {
-            score += 30;
-        } else if (
-            max &&
-            price <= max * 1.1
-        ) {
-            score += 15;
-        }
-    }
-
-    if (customer.area) {
-
-        total += 15;
-
-        const wanted =
-            customer.area.toLowerCase().trim();
-
-        const actual =
-            String(property.area || "")
-                .toLowerCase()
-                .trim();
-
-        if (
-            actual.includes(wanted) ||
-            wanted.includes(actual)
-        ) {
-            score += 15;
-        }
-    }
-
-    if (customer.rooms) {
-
-        total += 10;
-
-        if (
-            normalizeNumber(customer.rooms) ===
-            normalizeNumber(property.rooms)
-        ) {
-            score += 10;
-        }
-    }
-
-    if (customer.parking) {
-
-        total += 5;
-
-        if (property.parking) {
-            score += 5;
-        }
-    }
-
-    if (customer.elevator) {
-
-        total += 5;
-
-        if (property.elevator) {
-            score += 5;
-        }
-    }
-
-    if (customer.storage) {
-
-        total += 5;
-
-        if (property.storage) {
-            score += 5;
-        }
-    }
-
-    if (total === 0) return 0;
-
-    return Math.round(
-        (score / total) * 100
-    );
-}
-
-function getMatchingProperties(customer) {
-
-    return properties
-        .map(property => ({
-            property,
-            score:
-                calculateMatch(
-                    customer,
-                    property
-                )
-        }))
-        .filter(item => item.score >= 40)
-        .sort(
-            (a, b) =>
-                b.score - a.score
-        );
-}
-
-function showCustomerMatches(id) {
-
-    const customer =
-        customers.find(c => c.id === id);
-
-    if (!customer) return;
-
-    const matches =
-        getMatchingProperties(customer);
-
-    alert(
-        matches.length
-            ? `برای ${customer.name || "مشتری"} تعداد ${matches.length} فایل مناسب پیدا شد.`
-            : "فعلاً فایل مناسبی برای این مشتری پیدا نشد."
-    );
-}
+/* =========================
+   مشتریان
+========================= */
 
 function customerCardHTML(customer) {
-
     return `
-        <div class="customer-card">
+        <div class="customer-card" data-id="${escapeHTML(customer.id)}">
 
-            <div class="card-header">
+            <h3>
+                ${escapeHTML(customer.name || "بدون نام")}
+            </h3>
 
-                <strong>
-                    ${escapeHTML(customer.name || "بدون نام")}
-                </strong>
+            <p>
+                <strong>موبایل:</strong>
+                ${escapeHTML(customer.phone || "-")}
+            </p>
 
-            </div>
+            <p>
+                <strong>درخواست:</strong>
+                ${escapeHTML(customer.requestType || "-")}
+            </p>
 
-            <div class="card-body">
-
-                <p>
-                    📞 ${escapeHTML(customer.phone || "بدون شماره")}
-                </p>
-
-                <p>
-                    📍 ${escapeHTML(customer.area || "همه مناطق")}
-                </p>
-
-                ${
-                    customer.minSize || customer.maxSize
-                        ? `
-                            <p>
-                                📐
-                                ${toPersianNumber(customer.minSize || 0)}
-                                تا
-                                ${toPersianNumber(customer.maxSize || 0)}
-                                متر
-                            </p>
-                        `
-                        : ""
+            <p>
+                <strong>متراژ:</strong>
+                ${customer.minSize || customer.maxSize
+                    ? `${escapeHTML(customer.minSize || "-")} تا ${escapeHTML(customer.maxSize || "-")} متر`
+                    : "-"
                 }
+            </p>
 
-                ${
-                    customer.maxPrice
-                        ? `
-                            <p>
-                                💰 بودجه:
-                                ${formatPrice(customer.maxPrice)}
-                            </p>
-                        `
-                        : ""
+            <p>
+                <strong>بودجه:</strong>
+                ${customer.minBudget || customer.maxBudget
+                    ? `${formatPrice(customer.minBudget || 0)} تا ${formatPrice(customer.maxBudget || 0)} تومان`
+                    : "-"
                 }
+            </p>
 
-                ${
-                    customer.rooms
-                        ? `
-                            <p>
-                                🛏️
-                                ${toPersianNumber(customer.rooms)}
-                                خواب
-                            </p>
-                        `
-                        : ""
-                }
+            ${
+                customer.description
+                ? `<p>${escapeHTML(customer.description)}</p>`
+                : ""
+            }
 
-            </div>
+            <div class="customer-actions">
 
-            <div class="card-actions">
-
-                <button
-                    onclick="showCustomerMatches('${customer.id}')">
-                    🔎 فایل‌های مناسب
+                <button type="button"
+                    onclick="editCustomer('${customer.id}')">
+                    ویرایش
                 </button>
 
-                <button
-                    onclick="openCustomerForm('${customer.id}')">
-                    ✏️ ویرایش
-                </button>
-
-                <button
+                <button type="button"
                     onclick="deleteCustomer('${customer.id}')">
-                    🗑️ حذف
+                    حذف
+                </button>
+
+                <button type="button"
+                    onclick="showCustomerMatches('${customer.id}')">
+                    فایل‌های مناسب
                 </button>
 
             </div>
@@ -1460,174 +1066,614 @@ function customerCardHTML(customer) {
 }
 
 function renderCustomers() {
+    const container =
+        document.getElementById("customersList") ||
+        document.getElementById("customerList") ||
+        document.getElementById("customersContainer");
 
-    const list =
-        document.getElementById("customerList");
-
-    if (!list) return;
-
-    let result =
-        [...customers];
-
-    const search =
-        document.getElementById("customerSearch")
-            ?.value.trim().toLowerCase();
-
-    if (search) {
-
-        result =
-            result.filter(c =>
-                `${c.name || ""} ${c.phone || ""} ${c.area || ""}`
-                    .toLowerCase()
-                    .includes(search)
-            );
+    if (!container) {
+        return;
     }
 
-    list.innerHTML =
-        result.length
-            ? result.map(customerCardHTML).join("")
-            : `<div class="empty-state">هنوز مشتری ثبت نشده است.</div>`;
+    const customers = getCustomers();
+
+    if (customers.length === 0) {
+        container.innerHTML =
+            "<p>هنوز مشتری ثبت نشده است.</p>";
+        return;
+    }
+
+    container.innerHTML = customers
+        .slice()
+        .reverse()
+        .map(function (customer) {
+            return customerCardHTML(customer);
+        })
+        .join("");
 }
 
-// ===============================
-// تنظیمات
-// ===============================
 
-function updateAccountInfo() {
+/* =========================
+   افزودن مشتری
+========================= */
 
-    if (!currentUser) return;
+function addCustomer() {
+    const name = getInputValue("customerName");
+    const phone = normalizePhone(
+        getInputValue("customerPhone")
+    );
+
+    const requestType =
+        getInputValue("customerRequestType");
+
+    const desiredArea =
+        getInputValue("customerArea");
+
+    const minSize =
+        getInputValue("customerMinSize");
+
+    const maxSize =
+        getInputValue("customerMaxSize");
+
+    const minBudget =
+        getInputValue("customerMinBudget");
+
+    const maxBudget =
+        getInputValue("customerMaxBudget");
+
+    const rooms =
+        getInputValue("customerRooms");
+
+    const maxBuildYear =
+        getInputValue("customerMaxBuildYear");
+
+    const parking =
+        getChecked("customerParking");
+
+    const elevator =
+        getChecked("customerElevator");
+
+    const storage =
+        getChecked("customerStorage");
+
+    const description =
+        getInputValue("customerDescription");
+
+    if (!name) {
+        alert("نام مشتری را وارد کنید.");
+        return;
+    }
+
+    if (phone && !isValidPhone(phone)) {
+        alert("شماره موبایل مشتری صحیح نیست.");
+        return;
+    }
+
+    const customers = getCustomers();
+
+    const customer = {
+        id: generateId(),
+
+        name: name,
+        phone: phone,
+
+        requestType: requestType,
+        desiredArea: desiredArea,
+
+        minSize: normalizeNumber(minSize),
+        maxSize: normalizeNumber(maxSize),
+
+        minBudget: normalizeNumber(minBudget),
+        maxBudget: normalizeNumber(maxBudget),
+
+        rooms: normalizeNumber(rooms),
+
+        maxBuildYear: maxBuildYear,
+
+        parking: parking,
+        elevator: elevator,
+        storage: storage,
+
+        description: description,
+
+        createdAt: Date.now()
+    };
+
+    customers.push(customer);
+
+    saveCustomers(customers);
+
+    alert("مشتری با موفقیت ثبت شد.");
+
+    closeCustomerModal();
+
+    clearCustomerForm();
+
+    renderCustomers();
+
+    updateDashboard();
+}
+
+
+/* =========================
+   ویرایش مشتری
+========================= */
+
+function editCustomer(id) {
+    const customers = getCustomers();
+
+    const customer = customers.find(function (item) {
+        return String(item.id) === String(id);
+    });
+
+    if (!customer) {
+        alert("مشتری پیدا نشد.");
+        return;
+    }
+
+    setInputValue("customerName", customer.name);
+    setInputValue("customerPhone", customer.phone);
+    setInputValue("customerRequestType", customer.requestType);
+    setInputValue("customerArea", customer.desiredArea);
+    setInputValue("customerMinSize", customer.minSize);
+    setInputValue("customerMaxSize", customer.maxSize);
+    setInputValue("customerMinBudget", customer.minBudget);
+    setInputValue("customerMaxBudget", customer.maxBudget);
+    setInputValue("customerRooms", customer.rooms);
+    setInputValue("customerMaxBuildYear", customer.maxBuildYear);
+    setInputValue("customerDescription", customer.description);
+
+    setChecked("customerParking", customer.parking);
+    setChecked("customerElevator", customer.elevator);
+    setChecked("customerStorage", customer.storage);
+
+    const modal = document.getElementById("customerModal");
+
+    if (modal) {
+        modal.dataset.editingId = customer.id;
+        modal.style.display = "flex";
+    }
+}
+
+function updateCustomer() {
+    const modal = document.getElementById("customerModal");
+
+    if (!modal || !modal.dataset.editingId) {
+        addCustomer();
+        return;
+    }
+
+    const id = modal.dataset.editingId;
+
+    let customers = getCustomers();
+
+    const index = customers.findIndex(function (item) {
+        return String(item.id) === String(id);
+    });
+
+    if (index === -1) {
+        alert("مشتری پیدا نشد.");
+        return;
+    }
 
     const phone =
-        document.getElementById("accountPhone");
+        normalizePhone(getInputValue("customerPhone"));
 
-    const status =
-        document.getElementById("subscriptionStatus");
-
-    const date =
-        document.getElementById("subscriptionDate");
-
-    if (phone) {
-        phone.textContent =
-            currentUser.phone || "-";
+    if (phone && !isValidPhone(phone)) {
+        alert("شماره موبایل مشتری صحیح نیست.");
+        return;
     }
 
-    if (status) {
+    customers[index] = {
+        ...customers[index],
 
-        status.textContent =
-            isSubscriptionValid()
-                ? "فعال"
-                : "منقضی";
+        name: getInputValue("customerName"),
+        phone: phone,
+
+        requestType:
+            getInputValue("customerRequestType"),
+
+        desiredArea:
+            getInputValue("customerArea"),
+
+        minSize:
+            normalizeNumber(
+                getInputValue("customerMinSize")
+            ),
+
+        maxSize:
+            normalizeNumber(
+                getInputValue("customerMaxSize")
+            ),
+
+        minBudget:
+            normalizeNumber(
+                getInputValue("customerMinBudget")
+            ),
+
+        maxBudget:
+            normalizeNumber(
+                getInputValue("customerMaxBudget")
+            ),
+
+        rooms:
+            normalizeNumber(
+                getInputValue("customerRooms")
+            ),
+
+        maxBuildYear:
+            getInputValue("customerMaxBuildYear"),
+
+        parking:
+            getChecked("customerParking"),
+
+        elevator:
+            getChecked("customerElevator"),
+
+        storage:
+            getChecked("customerStorage"),
+
+        description:
+            getInputValue("customerDescription")
+    };
+
+    saveCustomers(customers);
+
+    alert("اطلاعات مشتری ویرایش شد.");
+
+    closeCustomerModal();
+
+    clearCustomerForm();
+
+    renderCustomers();
+
+    updateDashboard();
+}
+
+
+/* =========================
+   حذف مشتری
+========================= */
+
+function deleteCustomer(id) {
+    const confirmed =
+        confirm("آیا از حذف این مشتری اطمینان دارید؟");
+
+    if (!confirmed) {
+        return;
     }
 
-    if (date) {
+    const customers = getCustomers();
 
-        date.textContent =
-            currentUser.subscriptionUntil
-                ? new Date(
-                    currentUser.subscriptionUntil
-                ).toLocaleDateString("fa-IR")
-                : "-";
+    const newCustomers = customers.filter(function (item) {
+        return String(item.id) !== String(id);
+    });
+
+    saveCustomers(newCustomers);
+
+    renderCustomers();
+
+    updateDashboard();
+}
+
+
+/* =========================
+   فرم مشتری
+========================= */
+
+function clearCustomerForm() {
+    const ids = [
+        "customerName",
+        "customerPhone",
+        "customerRequestType",
+        "customerArea",
+        "customerMinSize",
+        "customerMaxSize",
+        "customerMinBudget",
+        "customerMaxBudget",
+        "customerRooms",
+        "customerMaxBuildYear",
+        "customerDescription"
+    ];
+
+    ids.forEach(function (id) {
+        setInputValue(id, "");
+    });
+
+    setChecked("customerParking", false);
+    setChecked("customerElevator", false);
+    setChecked("customerStorage", false);
+
+    const modal = document.getElementById("customerModal");
+
+    if (modal) {
+        delete modal.dataset.editingId;
     }
 }
 
-// ===============================
-// پشتیبان‌گیری
-// ===============================
+function openCustomerModal() {
+    clearCustomerForm();
+
+    const modal =
+        document.getElementById("customerModal");
+
+    if (modal) {
+        modal.style.display = "flex";
+    }
+}
+
+function closeCustomerModal() {
+    const modal =
+        document.getElementById("customerModal");
+
+    if (modal) {
+        modal.style.display = "none";
+        delete modal.dataset.editingId;
+    }
+}
+
+
+/* =========================
+   تطبیق مشتری با فایل‌های ملک
+========================= */
+
+function matchPropertyToCustomer(property, customer) {
+
+    const propertySize =
+        normalizeNumber(property.size);
+
+    const propertyPrice =
+        normalizeNumber(property.totalPrice);
+
+    const propertyRooms =
+        normalizeNumber(property.rooms);
+
+    const propertyBuildYear =
+        normalizeNumber(property.buildYear);
+
+    if (customer.minSize &&
+        propertySize < customer.minSize) {
+        return false;
+    }
+
+    if (customer.maxSize &&
+        propertySize > customer.maxSize) {
+        return false;
+    }
+
+    if (customer.minBudget &&
+        propertyPrice < customer.minBudget) {
+        return false;
+    }
+
+    if (customer.maxBudget &&
+        propertyPrice > customer.maxBudget) {
+        return false;
+    }
+
+    if (customer.rooms &&
+        propertyRooms !== customer.rooms) {
+        return false;
+    }
+
+    if (customer.maxBuildYear &&
+        propertyBuildYear &&
+        propertyBuildYear > customer.maxBuildYear) {
+        return false;
+    }
+
+    if (customer.parking &&
+        !property.parking) {
+        return false;
+    }
+
+    if (customer.elevator &&
+        !property.elevator) {
+        return false;
+    }
+
+    if (customer.storage &&
+        !property.storage) {
+        return false;
+    }
+
+    return true;
+}
+
+function showCustomerMatches(id) {
+    const customers = getCustomers();
+    const properties = getProperties();
+
+    const customer = customers.find(function (item) {
+        return String(item.id) === String(id);
+    });
+
+    if (!customer) {
+        alert("مشتری پیدا نشد.");
+        return;
+    }
+
+    const matches = properties.filter(function (property) {
+        return matchPropertyToCustomer(property, customer);
+    });
+
+    if (matches.length === 0) {
+        alert(
+            "برای این مشتری در حال حاضر فایل مناسبی پیدا نشد."
+        );
+        return;
+    }
+
+    const text = matches
+        .slice(0, 10)
+        .map(function (property, index) {
+
+            return (
+                (index + 1) +
+                ". " +
+                (property.type || "ملک") +
+                " - " +
+                (property.size || "-") +
+                " متر - " +
+                formatPrice(property.totalPrice) +
+                " تومان"
+            );
+
+        })
+        .join("\n");
+
+    alert(
+        "فایل‌های مناسب برای " +
+        customer.name +
+        ":\n\n" +
+        text
+    );
+}
+
+
+/* =========================
+   تنظیمات
+========================= */
+
+function updateSettings() {
+    const user = getUser();
+
+    if (!user) {
+        return;
+    }
+
+    const accountPhone =
+        document.getElementById("accountPhone");
+
+    const subscriptionStatus =
+        document.getElementById("subscriptionStatus");
+
+    const subscriptionDate =
+        document.getElementById("subscriptionDate");
+
+    if (accountPhone) {
+        accountPhone.textContent =
+            user.phone || "-";
+    }
+
+    if (subscriptionStatus) {
+        subscriptionStatus.textContent =
+            isSubscriptionValid(user)
+                ? "فعال"
+                : "منقضی شده";
+    }
+
+    if (subscriptionDate) {
+
+        if (user.subscriptionUntil) {
+
+            const date =
+                new Date(user.subscriptionUntil);
+
+            subscriptionDate.textContent =
+                date.toLocaleDateString("fa-IR");
+
+        } else {
+
+            subscriptionDate.textContent =
+                "فعال نشده";
+
+        }
+    }
+}
+
+
+/* =========================
+   پشتیبان‌گیری
+========================= */
 
 function backupData() {
-
     const data = {
-
-        version:
-            APP_CONFIG.version,
-
-        exportedAt:
-            new Date().toISOString(),
-
-        properties,
-        customers,
-        user: currentUser
+        version: APP_CONFIG.version,
+        user: getUser(),
+        properties: getProperties(),
+        customers: getCustomers(),
+        backupDate: new Date().toISOString()
     };
+
+    const json =
+        JSON.stringify(data, null, 2);
 
     const blob =
         new Blob(
-            [JSON.stringify(data, null, 2)],
-            {
-                type: "application/json"
-            }
+            [json],
+            { type: "application/json" }
         );
 
     const url =
         URL.createObjectURL(blob);
 
-    const a =
+    const link =
         document.createElement("a");
 
-    a.href = url;
+    link.href = url;
 
-    a.download =
-        "amlak-smart-backup.json";
+    link.download =
+        "amlak-hooshmand-backup.json";
 
-    document.body.appendChild(a);
+    document.body.appendChild(link);
 
-    a.click();
+    link.click();
 
-    a.remove();
+    document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
 }
 
+
+/* =========================
+   بازیابی اطلاعات
+========================= */
+
 function restoreData(event) {
 
     const file =
-        event?.target?.files?.[0];
+        event.target.files[0];
 
-    if (!file) return;
+    if (!file) {
+        return;
+    }
 
     const reader =
         new FileReader();
 
-    reader.onload = function () {
+    reader.onload = function (e) {
 
         try {
 
             const data =
-                JSON.parse(reader.result);
+                JSON.parse(e.target.result);
 
-            if (Array.isArray(data.properties)) {
-
-                properties =
-                    data.properties;
-
-                saveProperties();
-            }
-
-            if (Array.isArray(data.customers)) {
-
-                customers =
-                    data.customers;
-
-                saveCustomers();
+            if (!data) {
+                throw new Error("فایل نامعتبر است");
             }
 
             if (data.user) {
+                saveUser(data.user);
+            }
 
-                currentUser =
-                    data.user;
+            if (Array.isArray(data.properties)) {
+                saveProperties(data.properties);
+            }
 
-                saveUser();
+            if (Array.isArray(data.customers)) {
+                saveCustomers(data.customers);
             }
 
             alert(
                 "اطلاعات با موفقیت بازیابی شد."
             );
 
-            updateDashboard();
-            renderProperties();
-            renderCustomers();
-            updateAccountInfo();
+            updateAll();
 
         } catch (error) {
+
+            console.error(error);
 
             alert(
                 "فایل پشتیبان معتبر نیست."
@@ -1638,110 +1684,196 @@ function restoreData(event) {
     reader.readAsText(file);
 }
 
-// ===============================
-// شروع برنامه
-// ===============================
+
+/* =========================
+   بروزرسانی کلی
+========================= */
+
+function updateAll() {
+    updateDashboard();
+    renderProperties();
+    renderCustomers();
+    updateSettings();
+}
+
+
+/* =========================
+   رویدادهای صفحه
+========================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     function () {
 
-        const events = [
-
-            "propertySearch",
-            "filterType",
-            "filterArea",
-            "filterMinSize",
-            "filterMaxSize",
-            "filterMinPrice",
-            "filterMaxPrice",
-            "filterStatus",
-            "filterSpecial",
-            "propertySort"
-
-        ];
-
-        events.forEach(id => {
-
-            const el =
-                document.getElementById(id);
-
-            if (!el) return;
-
-            el.addEventListener(
-                "input",
-                renderProperties
-            );
-
-            el.addEventListener(
-                "change",
-                renderProperties
-            );
-        });
-
-        const customerSearch =
-            document.getElementById("customerSearch");
-
-        customerSearch?.addEventListener(
-            "input",
-            renderCustomers
+        console.log(
+            "املاک هوشمند - app.js نسخه " +
+            APP_CONFIG.version +
+            " اجرا شد."
         );
 
-        updateDashboard();
-        renderProperties();
-        renderCustomers();
-        updateAccountInfo();
+        const user = getUser();
 
-        const auth =
+        const authScreen =
             document.getElementById("authScreen");
 
-        const app =
+        const appScreen =
             document.getElementById("appScreen");
 
-        if (currentUser && isSubscriptionValid()) {
+        if (user && isSubscriptionValid(user)) {
 
-            if (auth) {
-                auth.style.display = "none";
+            if (authScreen) {
+                authScreen.style.display = "none";
             }
 
-            if (app) {
-                app.style.display = "block";
+            if (appScreen) {
+                appScreen.style.display = "block";
             }
 
-            openApplication();
+            updateAll();
 
         } else {
 
-            if (app) {
-                app.style.display = "none";
+            if (authScreen) {
+                authScreen.style.display = "block";
             }
 
-            if (auth) {
-                auth.style.display = "block";
+            if (appScreen) {
+                appScreen.style.display = "none";
             }
 
             showLogin();
         }
 
-        // بستن مودال‌ها با کلیک بیرون
+
+        /* جستجوی فایل‌ها */
+
+        const propertySearch =
+            document.getElementById("propertySearch");
+
+        if (propertySearch) {
+            propertySearch.addEventListener(
+                "input",
+                renderProperties
+            );
+        }
+
+
+        /* فیلتر فایل‌ها */
+
+        const propertyTypeFilter =
+            document.getElementById(
+                "propertyTypeFilter"
+            );
+
+        if (propertyTypeFilter) {
+            propertyTypeFilter.addEventListener(
+                "change",
+                renderProperties
+            );
+        }
+
+
+        const propertyStatusFilter =
+            document.getElementById(
+                "propertyStatusFilter"
+            );
+
+        if (propertyStatusFilter) {
+            propertyStatusFilter.addEventListener(
+                "change",
+                renderProperties
+            );
+        }
+
+
+        const propertySort =
+            document.getElementById(
+                "propertySort"
+            );
+
+        if (propertySort) {
+            propertySort.addEventListener(
+                "change",
+                renderProperties
+            );
+        }
+
+
+        /* کلیک بیرون از مودال */
+
         document.addEventListener(
             "click",
             function (event) {
 
+                const propertyModal =
+                    document.getElementById(
+                        "propertyModal"
+                    );
+
+                const customerModal =
+                    document.getElementById(
+                        "customerModal"
+                    );
+
                 if (
-                    event.target.id ===
-                    "propertyModal"
+                    propertyModal &&
+                    event.target === propertyModal
                 ) {
                     closePropertyModal();
                 }
 
                 if (
-                    event.target.id ===
-                    "customerModal"
+                    customerModal &&
+                    event.target === customerModal
                 ) {
                     closeCustomerModal();
                 }
             }
         );
     }
+);
+
+
+/* =========================
+   سازگاری با نام‌های احتمالی
+========================= */
+
+window.showLogin = showLogin;
+window.showRegister = showRegister;
+window.showPayment = showPayment;
+
+window.register = register;
+window.login = login;
+window.pay = pay;
+window.renewSubscription = renewSubscription;
+
+window.openApplication = openApplication;
+window.logout = logout;
+
+window.toggleMenu = toggleMenu;
+window.showSection = showSection;
+
+window.addProperty = addProperty;
+window.updateProperty = updateProperty;
+window.editProperty = editProperty;
+window.deleteProperty = deleteProperty;
+
+window.openPropertyModal = openPropertyModal;
+window.closePropertyModal = closePropertyModal;
+
+window.addCustomer = addCustomer;
+window.updateCustomer = updateCustomer;
+window.editCustomer = editCustomer;
+window.deleteCustomer = deleteCustomer;
+
+window.openCustomerModal = openCustomerModal;
+window.closeCustomerModal = closeCustomerModal;
+
+window.showCustomerMatches = showCustomerMatches;
+
+window.backupData = backupData;
+window.restoreData = restoreData;
+
+console.log(
+    "املاک هوشمند آماده است."
 );
